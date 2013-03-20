@@ -17,13 +17,13 @@ public class Main_ConvertfromPdtoOmsa {
 	public Main_ConvertfromPdtoOmsa() throws IOException {
 
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence");
+				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();
 			String inputfilename = filepath;
 			inputfilename = inputfilename
-					.replaceAll("Conf.txt", "ConfOMSA.csv");
+					.replaceAll("Confidence.txt", "ConfOMSA.csv");
 
 			if (!filepath.contains("DS_Store")) {
 				System.out.println(inputfilename);

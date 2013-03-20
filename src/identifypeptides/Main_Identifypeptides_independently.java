@@ -20,8 +20,8 @@ import org.apache.tools.ant.types.CommandlineJava.SysProperties;
 
 import applyconfidence.Output;
 
-public class Main_Identifypeptides {
-	public Main_Identifypeptides() throws SQLException {
+public class Main_Identifypeptides_independently {
+	public Main_Identifypeptides_independently() throws SQLException {
 
 		int rsSize = 0;
 		String queryMuster = "SELECT * FROM MusterList40";
@@ -54,29 +54,30 @@ public class Main_Identifypeptides {
 				} else if (musterCE >= 50) {
 					delta = 2.5;
 				} else {
-					delta = 0.0484 * musterCE + 0.0806;
+					delta = 0.0323 * musterCE + 0.3871;
 				}
 				double minrt = musterCE - delta;
 				double maxrt = musterCE + delta;
 
 				int rsSize2 = 0;
-				String queryPeptide = "SELECT * FROM CEMSMSCOMPLETEDATA WHERE (ConfTotal > 1.8 OR ConfTotal = 1.8) AND Rank = 1.0"
+				
+				String queryPeptide = "SELECT * FROM LCMSMSCOMPLETEDATA WHERE (ConfTotal > 1.8 OR ConfTotal = 1.8) AND Calibrated_CE_t_min NOT LIKE 0  AND Rank = 1.0"
 						+ " AND ((TheoriticalMass_Da > "
 						+ minmass
-						+ "OR TheoriticalMass_Da ="
+						+ " OR TheoriticalMass_Da ="
 						+ minmass
 						+ ") AND (TheoriticalMass_Da < "
 						+ maxmass
-						+ "OR TheoriticalMass_Da ="
+						+ " OR TheoriticalMass_Da ="
 						+ maxmass
 						+ ")) "
 						+ "AND ((Calibrated_CE_t_min >"
 						+ minrt
-						+ "OR Calibrated_CE_t_min ="
+						+ " OR Calibrated_CE_t_min ="
 						+ minrt
 						+ ") AND (Calibrated_CE_t_min <"
 						+ maxrt
-						+ "OR Calibrated_CE_t_min = " + maxrt + "))";
+						+ " OR Calibrated_CE_t_min = " + maxrt + "))";
 				Connection connection2 = getConn();
 				Statement s2 = connection2.createStatement();
 				try {
@@ -390,7 +391,7 @@ public class Main_Identifypeptides {
 			double Averageexpmass, double Averagemz) throws SQLException {
 
 		int rsSize3 = 0;
-		String selectedPeptide = "SELECT * FROM CEMSMSSELECTED WHERE Muster_ID = '"
+		String selectedPeptide = "SELECT * FROM LCMSMSSELECTED WHERE Muster_ID = '"
 				+ musterID + "'";
 		Connection connection3 = getConn();
 		Statement s3 = connection3.createStatement();
@@ -426,8 +427,9 @@ public class Main_Identifypeptides {
 			double Averageexpmass, double Averagemz) throws SQLException {
 
 		int rsSize3 = 0;
-		String selectedPeptide = "SELECT * FROM CEMSMSSELECTED WHERE Muster_ID = '"
-				+ musterID + "'";
+		String selectedPeptide = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID = '"
+				+ musterID + "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
+				+ allsequence + "'";
 		Connection connection3 = getConn();
 		Statement s3 = connection3.createStatement();
 		try {
@@ -460,7 +462,7 @@ public class Main_Identifypeptides {
 			int basic,  double AverageRT, int nbOccurence,
 			String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE MSMSDatabase.CEMSMSSELECTED SET Occurences ="
+		String updatePeptide = "UPDATE LCMSMSDatabase.LCMSMSSELECTED SET Occurences ="
 				+ nbOccurence
 				+ ", Confidence ='"
 				+ confidence
@@ -486,7 +488,7 @@ public class Main_Identifypeptides {
 				+ musterCE
 				+ ", Muster_Old_Sequence ='"
 				+ musterOldSequence
-				+ "' WHERE CONVERT MusterID ='"
+				+ "' WHERE Muster_ID ='"
 				+ musterID + "'";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
@@ -505,7 +507,7 @@ public class Main_Identifypeptides {
 			int basic,  double AverageRT, int nbOccurence,
 			String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String insertpeptide = "INSERT INTO CEMSMSSELECTED VALUES('" + musterID
+		String insertpeptide = "INSERT INTO LCMSMSSELECTED VALUES('" + musterID
 				+ "', " + musterMass + ", " + musterCE + ", '"
 				+ musterOldSequence + "', '" + allsequence + "', '" + list
 				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz + ", "
@@ -529,7 +531,7 @@ public class Main_Identifypeptides {
 			int basic,  double AverageRT, int nbOccurence,
 			String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE MSMSDatabase.CEMSMSCONFLICT SET Occurences ='"
+		String updatePeptide = "UPDATE LCMSMSDatabase.LCMSMSCONFLICT SET Occurences = "
 				+ nbOccurence
 				+ ", Confidence ='"
 				+ confidence
@@ -555,8 +557,8 @@ public class Main_Identifypeptides {
 				+ musterCE
 				+ ", Muster_Old_Sequence ='"
 				+ musterOldSequence
-				+ "' WHERE CONVERT MusterID ='"
-				+ musterID + "'";
+				+ "' WHERE Muster_ID ='" + musterID + "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
+				+ allsequence + "'";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
 		try {
@@ -574,7 +576,7 @@ public class Main_Identifypeptides {
 			int basic,  double AverageRT, int nbOccurence,
 			String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String insertpeptide = "INSERT INTO CEMSMSCONFLICT VALUES('" + musterID
+		String insertpeptide = "INSERT INTO LCMSMSCONFLICT VALUES('" + musterID
 				+ "', " + musterMass + ", " + musterCE + ", '"
 				+ musterOldSequence + "', '" + allsequence + "', '" + list
 				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz + ", "
@@ -622,17 +624,21 @@ public class Main_Identifypeptides {
 
 	public static void main(String[] args) throws IOException, SQLException {
 		// TODO code application logic here
-		Main_Identifypeptides Main_Identifypeptides = new Main_Identifypeptides();
+		Main_Identifypeptides_independently Main_Identifypeptides_independently = new Main_Identifypeptides_independently();
 	}
 
 	private Connection getConn() {
 		Connection conn = null;
 
 		try {
-			String host = "jdbc:mysql://localhost:3306/";
-			String dbName = "MSMSDatabase";
-			String usermame = "root";
-			String pwd = "kschoicesql";
+//			String host = "jdbc:mysql://localhost:3306/";
+//			String dbName = "MSMSDatabase";
+//			String usermame = "root";
+//			String pwd = "kschoicesql";
+			String host = "jdbc:mysql://srvW2008R2.samba:3306/";
+			String dbName = "LCMSMSDatabase";
+			String usermame = "jklein";
+			String pwd = "JK32485c";
 			conn = DriverManager.getConnection(host + dbName + "?user="
 					+ usermame + "&password=" + pwd);
 

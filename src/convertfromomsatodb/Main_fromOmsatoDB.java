@@ -21,15 +21,15 @@ import applyconfidence.Output;
 public class Main_fromOmsatoDB {
 	public Main_fromOmsatoDB() throws IOException, SQLException {
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/extrapolated");
+				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/extrapolated");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();
 			String woextrapol = filepath
 					.replace(
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/extrapolated/",
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/");
-			woextrapol = woextrapol.replace("_ConfOMSA-20130311-1258.txt",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/extrapolated/",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/");
+			woextrapol = woextrapol.replace("_ConfOMSA-20130314-1042.txt",
 					"_Conf.txt");
 			String withextrapol = woextrapol.replace("_Conf.txt",
 					"_Extrapo_Conf.txt");
@@ -41,7 +41,7 @@ public class Main_fromOmsatoDB {
 			File withextrafile = new File(withextrapol);
 			if (!withextrafile.exists()) {
 
-			if (!filepath.contains("DS_Store") && !filepath.contains("Extrapo")) {
+			if (!filepath.contains("DS_Store") && !filepath.contains("Extrapo") && !filepath.contains("_los")) {
 				PrintStream csvWriter = null;
 				LinkedList<Output> outputList = new LinkedList<Output>();
 				BufferedReader bReader = createBufferedreader(woextrapol);
