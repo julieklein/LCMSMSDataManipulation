@@ -566,15 +566,15 @@ public class Main_ApplyConfidence {
 		
 
 		double Deltamass = Double.parseDouble(splitarray[16].replaceAll(",", "."));
-		int confDeltaMass = (Deltamass > -10 && Deltamass < 10) ? 1 : 0;
+		int confDeltaMass = (Deltamass > -5 && Deltamass < 5) ? 1 : 0;
 		output.Conf_DeltaMass = confDeltaMass;
 
 		if (confCystein == 0) {
 			output.Conf_Total = 0;
 		} else if (confOxidation == 0) {
 			output.Conf_Total = 0;
-//		} else if (confDeamination == 0) {
-//			output.Conf_Total = 0;
+		} else if (output.PD_Conf.equals("Low") || output.PD_Conf.equals("Medium") ) {
+			output.Conf_Total = 0;
 		} else if (confDeltaMass == 0) {
 			output.Conf_Total = 0;
 		} else if (output.PD_Rank !=1.0) {

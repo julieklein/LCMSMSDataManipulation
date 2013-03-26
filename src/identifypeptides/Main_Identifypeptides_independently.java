@@ -30,7 +30,7 @@ public class Main_Identifypeptides_independently {
 		try {
 			ResultSet result = s.executeQuery(queryMuster);
 			rsSize = getResultSetSize(result);
-			
+
 			while (result.next()) {
 				String musterId = Integer.toString(result.getInt("idMuster"));
 				double musterMass = result.getDouble("ExperimentalMass_Da");
@@ -60,8 +60,9 @@ public class Main_Identifypeptides_independently {
 				double maxrt = musterCE + delta;
 
 				int rsSize2 = 0;
-				
-				String queryPeptide = "SELECT * FROM LCMSMSCOMPLETEDATA WHERE (ConfTotal > 1.8 OR ConfTotal = 1.8) AND Calibrated_CE_t_min NOT LIKE 0  AND Rank = 1.0"
+
+				String queryPeptide = "SELECT * FROM CEMSMSCOMPLETEDATA WHERE (ConfTotal > 1.8 OR ConfTotal = 1.8) AND Calibrated_CE_t_min NOT LIKE 0  AND Rank = 1.0"
+//						+ " AND NOT Modifications LIKE '%N1(Deamidated)%' AND NOT Modifications LIKE '%Q1(Deamidated)%'"
 						+ " AND ((TheoriticalMass_Da > "
 						+ minmass
 						+ " OR TheoriticalMass_Da ="
@@ -86,7 +87,7 @@ public class Main_Identifypeptides_independently {
 					if (rsSize2 == 0) {
 						// TODO PAS DE SEQUENCE POUR CE PEPTIDEID
 					} else {
-						System.out.println(musterId + " found");	
+						System.out.println(musterId + " found");
 						Map<String, List<Set<String>>> peptideselectionHigh = new LinkedHashMap<String, List<Set<String>>>();
 						while (result2.next()) {
 							double rank = result2.getDouble("Rank");
@@ -103,8 +104,10 @@ public class Main_Identifypeptides_independently {
 									.getDouble("ExperimentalMass_H_Da");
 							double mz = result2.getDouble("m_z_Da");
 							int basic = result2.getInt("Nb_Basic_Aa");
-							double rt = result2.getDouble("Calibrated_CE_t_min");
-							String spectrum = result2.getString("Spectrum_File");
+							double rt = result2
+									.getDouble("Calibrated_CE_t_min");
+							String spectrum = result2
+									.getString("Spectrum_File");
 							double scan = result2.getDouble("First_Scan");
 							double Xcorr = result2.getDouble("Xcorr");
 
@@ -133,7 +136,7 @@ public class Main_Identifypeptides_independently {
 									nbM++;
 								}
 							}
-							
+
 							String sequenceUP = sequence.toUpperCase();
 							String key = musterId + ", " + sequenceUP + ", "
 									+ Integer.toString(nbP) + ", "
@@ -147,16 +150,20 @@ public class Main_Identifypeptides_independently {
 								}
 								peptideselectionHigh.put(key, value);
 							}
-							
+
 							peptideselectionHigh.get(key).get(0).add(musterId);
-							peptideselectionHigh.get(key).get(1).add(Double.toString(musterMass));
-							peptideselectionHigh.get(key).get(2).add(Double.toString(musterCE));
-							peptideselectionHigh.get(key).get(3).add(musterOldSequence);
+							peptideselectionHigh.get(key).get(1)
+									.add(Double.toString(musterMass));
+							peptideselectionHigh.get(key).get(2)
+									.add(Double.toString(musterCE));
+							peptideselectionHigh.get(key).get(3)
+									.add(musterOldSequence);
 							peptideselectionHigh.get(key).get(4).add(sequence);
 							peptideselectionHigh.get(key).get(5).add(accession);
 							peptideselectionHigh.get(key).get(6).add(symbol);
 							peptideselectionHigh.get(key).get(7).add(name);
-							peptideselectionHigh.get(key).get(8).add(modifications + ";");
+							peptideselectionHigh.get(key).get(8)
+									.add(modifications + ";");
 							peptideselectionHigh.get(key).get(9)
 									.add(Double.toString(theomass));
 							peptideselectionHigh.get(key).get(10)
@@ -175,9 +182,10 @@ public class Main_Identifypeptides_independently {
 							peptideselectionHigh.get(key).get(16)
 									.add(Double.toString(Xcorr));
 						}
-						
+
 						Map<String, List<Set<String>>> nbconflict = new LinkedHashMap<String, List<Set<String>>>();
-						Iterator iterator2 = peptideselectionHigh.values().iterator();
+						Iterator iterator2 = peptideselectionHigh.values()
+								.iterator();
 						while (iterator2.hasNext()) {
 							String values = iterator2.next().toString();
 							String splitHashMap[] = values.split("\\], \\[");
@@ -195,7 +203,7 @@ public class Main_Identifypeptides_independently {
 							}
 							nbconflict.get(key).get(0).add(Integer.toString(i));
 						}
-						
+
 						Iterator iterator3 = nbconflict.values().iterator();
 						String values2 = iterator3.next().toString();
 						String splitHashMap2[] = values2.split("\\], \\[");
@@ -207,11 +215,11 @@ public class Main_Identifypeptides_independently {
 						for (String string : splitconflict) {
 							j++;
 						}
-						 
+
 						String confidence = j == 1 ? "High" : "Conflict (High)";
-						
-						
-						Iterator iterator = peptideselectionHigh.values().iterator();
+
+						Iterator iterator = peptideselectionHigh.values()
+								.iterator();
 						while (iterator.hasNext()) {
 							String values = iterator.next().toString();
 							String splitHashMap[] = values.split("\\], \\[");
@@ -228,22 +236,24 @@ public class Main_Identifypeptides_independently {
 
 							String allmodif = splitHashMap[8];
 							String modifications = "";
-							
+
 							if (allmodif.contains(";")) {
-							String splitmodif[] = allmodif.split("; ");
-							modifications = splitmodif[0];
+								String splitmodif[] = allmodif.split("; ");
+								modifications = splitmodif[0];
 							} else {
 								modifications = allmodif;
 							}
-							
-							double theomass = Double.parseDouble(splitHashMap[9]);
-							
+
+							double theomass = Double
+									.parseDouble(splitHashMap[9]);
+
 							String Allexpmass = splitHashMap[10];
 							double Averageexpmass = 0;
 							int nbMass = 0;
 							String splitAllmass[] = Allexpmass.split(",");
 							for (String string : splitAllmass) {
-								Averageexpmass = Averageexpmass + Double.parseDouble(string);
+								Averageexpmass = Averageexpmass
+										+ Double.parseDouble(string);
 								nbMass++;
 							}
 							Averageexpmass = Averageexpmass / nbMass;
@@ -253,7 +263,8 @@ public class Main_Identifypeptides_independently {
 							int nbmz = 0;
 							String splitAllmz[] = Allmz.split(",");
 							for (String string : splitAllmz) {
-								Averagemz = Averagemz + Double.parseDouble(string);
+								Averagemz = Averagemz
+										+ Double.parseDouble(string);
 								nbmz++;
 							}
 							Averagemz = Averagemz / nbmz;
@@ -265,7 +276,8 @@ public class Main_Identifypeptides_independently {
 							int nbRT = 0;
 							String splitAll[] = AllRT.split(",");
 							for (String string : splitAll) {
-								AverageRT = AverageRT + Double.parseDouble(string);
+								AverageRT = AverageRT
+										+ Double.parseDouble(string);
 								nbRT++;
 							}
 							AverageRT = AverageRT / nbRT;
@@ -274,90 +286,36 @@ public class Main_Identifypeptides_independently {
 							String splitOcc[] = sOccurence.split(",");
 							int nbOccurence = splitOcc.length;
 
-
 							String AllXcorr = splitHashMap[16];
 							AllXcorr = AllXcorr.replaceAll("\\]", "");
 							double AverageX = 0;
 							int nbX = 0;
 							String splitAllX[] = AllXcorr.split(",");
 							for (String string : splitAllX) {
-								AverageX = AverageX + Double.parseDouble(string);
+								AverageX = AverageX
+										+ Double.parseDouble(string);
 								nbX++;
 							}
 							AverageX = AverageX / nbX;
-							
-							
+
 							if (confidence.equals("High")) {
 								System.out.println("High");
-//								String list = splitHashMap[5];
-//								list = list.replace(allsequence + "; ", "");
-//								double theomass = Double.parseDouble(splitHashMap[6]);
-//								double Averageexpmass = Double.parseDouble(splitHashMap[7]);
-//								double Averagemz = Double.parseDouble(splitHashMap[8]);
-//								int basic = Integer.parseInt(splitHashMap[9]);
-//								double AverageRT = Double.parseDouble(splitHashMap[10]);
-//								int nbOccurence = Integer.parseInt(splitHashMap[11]);
-//								String sAverageX = splitHashMap[12];
-//								sAverageX = sAverageX.replaceAll("\\]", "");
-//								double AverageX = Double.parseDouble(sAverageX);
-								
-								updateSelectedDB(musterId, musterMass, musterCE, musterOldSequence, sequence, list,
-										theomass, basic, AverageRT,
-										nbOccurence, confidence,
-										AverageX, Averageexpmass,
-										Averagemz);
+
+								updateSelectedDB(musterId, musterMass,
+										musterCE, musterOldSequence, sequence,
+										list, theomass, basic, AverageRT,
+										nbOccurence, confidence, AverageX,
+										Averageexpmass, Averagemz);
 							} else {
 								System.out.println("Conflict (High)");
-//								String list = splitHashMap[5];
-//								String theomass = splitHashMap[6];
-//								String Averageexpmass = splitHashMap[7];
-//								String Averagemz = splitHashMap[8];
-//								String basic = splitHashMap[9];
-//								String AverageRT = splitHashMap[10];
-//								String nbOccurence = splitHashMap[11];
-//								String AverageX = splitHashMap[12];
-//								AverageX = AverageX.replaceAll("\\]", "");
-								
-								updateConflictDB(musterId, musterMass, musterCE, musterOldSequence, sequence, list,
-										theomass, basic, AverageRT,
-										nbOccurence, confidence,
-										AverageX, Averageexpmass,
-										Averagemz);
+
+								updateConflictDB(musterId, musterMass,
+										musterCE, musterOldSequence, sequence,
+										list, theomass, basic, AverageRT,
+										nbOccurence, confidence, AverageX,
+										Averageexpmass, Averagemz);
 							}
-//							peptideselectionHigh.get(key).get(4).add(sequence);
-//							peptideselectionHigh.get(key).get(5).add(sequence + " (" + accession + "; " + symbol + ")");
-//							peptideselectionHigh.get(key).get(6)
-//									.add(Double.toString(theomass));
-//							peptideselectionHigh.get(key).get(7)
-//									.add(Double.toString(Averageexpmass));
-//							peptideselectionHigh.get(key).get(8)
-//									.add(Double.toString(Averagemz));
-//							peptideselectionHigh.get(key).get(9)
-//									.add(Integer.toString(basic));
-//							peptideselectionHigh.get(key).get(10)
-//									.add(Double.toString(AverageRT));
-//							peptideselectionHigh.get(key).get(11).add(Integer.toString(nbOccurence));
-//							peptideselectionHigh.get(key).get(12)
-//									.add(Double.toString(AverageX));
 						}
-						
-//						Iterator iterator2 = peptideselectionHigh.values().iterator();
-//						String confidence = "";
-//						String values = iterator2.next().toString();
-//						String splitHashMap[] = values.split("\\], \\[");
-//						
-//						String musterID = splitHashMap[0];
-//						musterID = musterID.replaceAll("\\[", "");
-//		
-//						double musterMass2 = Double.parseDouble(splitHashMap[1]);
-//						double musterCE2 = Double.parseDouble(splitHashMap[2]);
-//						String musterOldSequence2 = splitHashMap[3];
-//						
-//						String allsequence = splitHashMap[4];
-//						String splitsequence[] = allsequence.split(",");
-//						int nbSequence  = splitsequence.length;
-						
-						
 					}
 					result2.close();
 					s2.close();
@@ -367,13 +325,7 @@ public class Main_Identifypeptides_independently {
 							.println("Mysql Statement Error: " + queryPeptide);
 					ignore.printStackTrace();
 				}
-				
-				
-
-
-				
 			}
-			
 			result.close();
 			s.close();
 			connection.close();
@@ -384,14 +336,14 @@ public class Main_Identifypeptides_independently {
 
 	}
 
-	private void updateSelectedDB(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
+	private void updateSelectedDB(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
 
 		int rsSize3 = 0;
-		String selectedPeptide = "SELECT * FROM LCMSMSSELECTED WHERE Muster_ID = '"
+		String selectedPeptide = "SELECT * FROM CEMSMSSELECTED WHERE Muster_ID = '"
 				+ musterID + "'";
 		Connection connection3 = getConn();
 		Statement s3 = connection3.createStatement();
@@ -399,17 +351,15 @@ public class Main_Identifypeptides_independently {
 			ResultSet result3 = s3.executeQuery(selectedPeptide);
 			rsSize3 = getResultSetSize(result3);
 			if (rsSize3 > 0) {
-				updatePeptideS(musterID, musterMass, musterCE, musterOldSequence, allsequence, list,
-						theomass, basic, AverageRT,
-						nbOccurence, confidence,
-						AverageX, Averageexpmass,
-						Averagemz);
+				updatePeptideS(musterID, musterMass, musterCE,
+						musterOldSequence, allsequence, list, theomass, basic,
+						AverageRT, nbOccurence, confidence, AverageX,
+						Averageexpmass, Averagemz);
 			} else {
-				insertPeptideS(musterID, musterMass, musterCE, musterOldSequence, allsequence, list,
-						theomass, basic, AverageRT,
-						nbOccurence, confidence,
-						AverageX, Averageexpmass,
-						Averagemz);
+				insertPeptideS(musterID, musterMass, musterCE,
+						musterOldSequence, allsequence, list, theomass, basic,
+						AverageRT, nbOccurence, confidence, AverageX,
+						Averageexpmass, Averagemz);
 			}
 			result3.close();
 			s3.close();
@@ -419,16 +369,17 @@ public class Main_Identifypeptides_independently {
 			ignore.printStackTrace();
 		}
 	}
-	
-	private void updateConflictDB(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
+
+	private void updateConflictDB(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
 
 		int rsSize3 = 0;
-		String selectedPeptide = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID = '"
-				+ musterID + "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
+		String selectedPeptide = "SELECT * FROM CEMSMSCONFLICT WHERE Muster_ID = '"
+				+ musterID
+				+ "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
 				+ allsequence + "'";
 		Connection connection3 = getConn();
 		Statement s3 = connection3.createStatement();
@@ -436,17 +387,15 @@ public class Main_Identifypeptides_independently {
 			ResultSet result3 = s3.executeQuery(selectedPeptide);
 			rsSize3 = getResultSetSize(result3);
 			if (rsSize3 > 0) {
-				updatePeptideC(musterID, musterMass, musterCE, musterOldSequence, allsequence, list,
-						theomass, basic, AverageRT,
-						nbOccurence, confidence,
-						AverageX, Averageexpmass,
-						Averagemz);
+				updatePeptideC(musterID, musterMass, musterCE,
+						musterOldSequence, allsequence, list, theomass, basic,
+						AverageRT, nbOccurence, confidence, AverageX,
+						Averageexpmass, Averagemz);
 			} else {
-				insertPeptideC(musterID, musterMass, musterCE, musterOldSequence, allsequence, list,
-						theomass, basic, AverageRT,
-						nbOccurence, confidence,
-						AverageX, Averageexpmass,
-						Averagemz);
+				insertPeptideC(musterID, musterMass, musterCE,
+						musterOldSequence, allsequence, list, theomass, basic,
+						AverageRT, nbOccurence, confidence, AverageX,
+						Averageexpmass, Averagemz);
 			}
 			result3.close();
 			s3.close();
@@ -457,12 +406,12 @@ public class Main_Identifypeptides_independently {
 		}
 	}
 
-	private void updatePeptideS(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
+	private void updatePeptideS(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE LCMSMSDatabase.LCMSMSSELECTED SET Occurences ="
+		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSSELECTED SET Occurences ="
 				+ nbOccurence
 				+ ", Confidence ='"
 				+ confidence
@@ -471,7 +420,74 @@ public class Main_Identifypeptides_independently {
 				+ "', Protein_Info ='"
 				+ list
 				+ "', Theoritical_Mass_Da = "
-					+ theomass
+				+ theomass
+				+ ", Average_ExperimentalMass_H_Da = "
+				+ Averageexpmass
+				+ ", Average_m_z_Da = "
+				+ Averagemz
+				+ ", Average_Xcorr = "
+				+ AverageX
+				+ ", Average_Calibrated_CE_t_min = "
+				+ AverageRT
+				+ " , Muster_ID = '"
+				+ musterID
+				+ "', Muster_Exp_Mass ="
+				+ musterMass
+				+ ", Muster_CE_t="
+				+ musterCE
+				+ ", Muster_Old_Sequence ='"
+				+ musterOldSequence
+				+ "' WHERE Muster_ID ='" + musterID + "'";
+		Connection connection4 = getConn();
+		Statement s4 = connection4.createStatement();
+		try {
+			int result4 = s4.executeUpdate(updatePeptide);
+			s4.close();
+			connection4.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + updatePeptide);
+			ignore.printStackTrace();
+		}
+	}
+
+	private void insertPeptideS(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
+			double Averageexpmass, double Averagemz) throws SQLException {
+		String insertpeptide = "INSERT INTO CEMSMSSELECTED VALUES('" + musterID
+				+ "', " + musterMass + ", " + musterCE + ", '"
+				+ musterOldSequence + "', '" + allsequence + "', '" + list
+				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz
+				+ ", " + AverageX + ", " + basic + ", " + AverageRT + " , "
+				+ nbOccurence + ", '" + confidence + "', '')";
+		Connection connection4 = getConn();
+		Statement s4 = connection4.createStatement();
+		try {
+			int result4 = s4.executeUpdate(insertpeptide);
+			s4.close();
+			connection4.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + insertpeptide);
+			ignore.printStackTrace();
+		}
+	}
+
+	private void updatePeptideC(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
+			double Averageexpmass, double Averagemz) throws SQLException {
+		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSCONFLICT SET Occurences = "
+				+ nbOccurence
+				+ ", Confidence ='"
+				+ confidence
+				+ "', Sequence ='"
+				+ allsequence
+				+ "', Protein_Info ='"
+				+ list
+				+ "', Theoritical_Mass_Da = "
+				+ theomass
 				+ ", Average_ExperimentalMass_H_Da = "
 				+ Averageexpmass
 				+ ", Average_m_z_Da = "
@@ -489,75 +505,8 @@ public class Main_Identifypeptides_independently {
 				+ ", Muster_Old_Sequence ='"
 				+ musterOldSequence
 				+ "' WHERE Muster_ID ='"
-				+ musterID + "'";
-		Connection connection4 = getConn();
-		Statement s4 = connection4.createStatement();
-		try {
-			int result4 = s4.executeUpdate(updatePeptide);
-			s4.close();
-			connection4.close();
-		} catch (Throwable ignore) {
-			System.err.println("Mysql Statement Error: " + updatePeptide);
-			ignore.printStackTrace();
-		}
-	}
-
-	private void insertPeptideS(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
-		String insertpeptide = "INSERT INTO LCMSMSSELECTED VALUES('" + musterID
-				+ "', " + musterMass + ", " + musterCE + ", '"
-				+ musterOldSequence + "', '" + allsequence + "', '" + list
-				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz + ", "
-				+ AverageX + ", " + basic + ", " + AverageRT
-				+ " , " + nbOccurence + ", '" + confidence
-				+ "')";
-		Connection connection4 = getConn();
-		Statement s4 = connection4.createStatement();
-		try {
-			int result4 = s4.executeUpdate(insertpeptide);
-			s4.close();
-			connection4.close();
-		} catch (Throwable ignore) {
-			System.err.println("Mysql Statement Error: " + insertpeptide);
-			ignore.printStackTrace();
-		}
-	}
-
-	private void updatePeptideC(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE LCMSMSDatabase.LCMSMSCONFLICT SET Occurences = "
-				+ nbOccurence
-				+ ", Confidence ='"
-				+ confidence
-				+ "', Sequence ='"
-				+ allsequence
-				+ "', Protein_Info ='"
-				+ list
-				+ "', Theoritical_Mass_Da = "
-					+ theomass
-				+ ", Average_ExperimentalMass_H_Da = "
-				+ Averageexpmass
-				+ ", Average_m_z_Da = "
-				+ Averagemz
-				+ ", Average_Xcorr = "
-				+ AverageX
-				+ ", Average_Calibrated_CE_t_min = "
-				+ AverageRT
-				+ " , Muster_ID = '"
 				+ musterID
-				+ "', Muster_Exp_Mass ="
-				+ musterMass
-				+ ", Muster_CE_t="
-				+ musterCE
-				+ ", Muster_Old_Sequence ='"
-				+ musterOldSequence
-				+ "' WHERE Muster_ID ='" + musterID + "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
+				+ "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
 				+ allsequence + "'";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
@@ -571,18 +520,17 @@ public class Main_Identifypeptides_independently {
 		}
 	}
 
-	private void insertPeptideC(String musterID, double musterMass, double musterCE, String musterOldSequence, String allsequence, String list,
-			double theomass,
-			int basic,  double AverageRT, int nbOccurence,
-			String confidence, double AverageX,
+	private void insertPeptideC(String musterID, double musterMass,
+			double musterCE, String musterOldSequence, String allsequence,
+			String list, double theomass, int basic, double AverageRT,
+			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
-		String insertpeptide = "INSERT INTO LCMSMSCONFLICT VALUES('" + musterID
+		String insertpeptide = "INSERT INTO CEMSMSCONFLICT VALUES('" + musterID
 				+ "', " + musterMass + ", " + musterCE + ", '"
 				+ musterOldSequence + "', '" + allsequence + "', '" + list
-				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz + ", "
-				+ AverageX + ", " + basic + ", " + AverageRT
-				+ " , " + nbOccurence + ", '" + confidence
-				+ "')";
+				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz
+				+ ", " + AverageX + ", " + basic + ", " + AverageRT + " , "
+				+ nbOccurence + ", '" + confidence + "', '')";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
 		try {
@@ -594,8 +542,7 @@ public class Main_Identifypeptides_independently {
 			ignore.printStackTrace();
 		}
 	}
-	
-	
+
 	private boolean findConflictHigh(Iterator iterator2) {
 		while (iterator2.hasNext()) {
 			String values2 = iterator2.next().toString();
@@ -631,10 +578,10 @@ public class Main_Identifypeptides_independently {
 		Connection conn = null;
 
 		try {
-//			String host = "jdbc:mysql://localhost:3306/";
-//			String dbName = "MSMSDatabase";
-//			String usermame = "root";
-//			String pwd = "kschoicesql";
+			// String host = "jdbc:mysql://localhost:3306/";
+			// String dbName = "MSMSDatabase";
+			// String usermame = "root";
+			// String pwd = "kschoicesql";
 			String host = "jdbc:mysql://srvW2008R2.samba:3306/";
 			String dbName = "LCMSMSDatabase";
 			String usermame = "jklein";
