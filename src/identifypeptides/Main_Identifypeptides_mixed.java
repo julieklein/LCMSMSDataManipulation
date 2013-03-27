@@ -68,168 +68,512 @@ public class Main_Identifypeptides_mixed {
 		int maxLCOcc = LCOcc.get(size3 - 1);
 		double maxLCXcorr = LCXcorr.get(size4 - 1);
 
-		// FOREACH MusterID in CEMSMSSELECTED
-		forEachCESelected(queryCEMSMSSELECTED, maxCEOcc, maxCEXcorr, maxLCOcc,
-				maxLCXcorr);
+		String queryMuster = "SELECT * FROM musterlist40";
+		Connection connection = getConn();
+		Statement s = connection.createStatement();
+		try {
+			ResultSet result = s.executeQuery(queryMuster);
+			while (result.next()) {
 
-		// FOREACH MusterID in LCMSMSSELECTED
-		forEachLCSelected(queryLCMSMSSELECTED, maxCEOcc, maxCEXcorr, maxLCOcc,
-				maxLCXcorr);
+				boolean output = false;
 
-		// FOREACH MusterID in CEMSMSCONFLICT
-		forEachCEConflict(queryCEMSMSCONFLICT, maxCEOcc, maxCEXcorr, maxLCOcc,
-				maxLCXcorr);
+				int imuster = result.getInt("idMuster");
+				String muster = Integer.toString(imuster);
 
-		// FOREACH MusterID in LCMSMSCONFLICT
-		forEachLCConflict(queryLCMSMSCONFLICT, maxCEOcc, maxCEXcorr, maxLCOcc,
-				maxLCXcorr);
+				String queryCEMSMSSELECTEDmuster = "SELECT * FROM CEMSMSSELECTED where muster_Id = '"
+						+ muster + "'";
+				String queryCEMSMSCONFLICTmuster = "SELECT * FROM CEMSMSCONFLICT where muster_Id = '"
+						+ muster + "'";
+				String queryLCMSMSSELECTEDmuster = "SELECT * FROM LCMSMSSELECTED WHERE CONFIDENCE NOT LIKE 'Pending' and muster_Id = '"
+						+ muster + "'";
+				String queryLCMSMSCONFLICTmuster = "SELECT * FROM LCMSMSCONFLICT WHERE CONFIDENCE NOT LIKE 'Pending' and muster_Id = '"
+						+ muster + "'";
+
+				// FOREACH MusterID in CEMSMSSELECTED
+				output = forEachCESelected(queryCEMSMSSELECTEDmuster, maxCEOcc,
+						maxCEXcorr, maxLCOcc, maxLCXcorr, output);
+
+				if (!output) {
+					// FOREACH MusterID in LCMSMSSELECTED
+					output = forEachLCSelected(queryLCMSMSSELECTEDmuster,
+							maxCEOcc, maxCEXcorr, maxLCOcc, maxLCXcorr, output);
+
+					if (!output) {
+						// FOREACH MusterID in CEMSMSCONFLICT
+						output = forEachCEConflict(queryCEMSMSCONFLICTmuster,
+								maxCEOcc, maxCEXcorr, maxLCOcc, maxLCXcorr,
+								output);
+
+						if (!output) {
+							// FOREACH MusterID in LCMSMSCONFLICT
+							forEachLCConflict(queryLCMSMSCONFLICTmuster,
+									maxCEOcc, maxCEXcorr, maxLCOcc, maxLCXcorr);
+						}
+					}
+				}
+
+			}
+			result.close();
+			s.close();
+			connection.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + queryMuster);
+			ignore.printStackTrace();
+		}
+		
+		// add missing CEConflict seq 
+		String queryCEMSMSCONFLICTMISSING = "SELECT * FROM CEMSMSCONFLICT";		
+		int rsSize5 = 0;
+		Connection connection5 = getConn();
+		Statement s5 = connection5.createStatement();
+		try {
+			ResultSet result5 = s5
+					.executeQuery(queryCEMSMSCONFLICTMISSING);
+			rsSize5 = getResultSetSize(result5);
+			if (rsSize5 != 0) {
+				while (result5.next()) {			
+					String MusterID = "";
+					double MusterMass = 0;
+					double MusterTime = 0;
+					String OldSeq = "";
+					String NewSeq = "";
+					String ProtInfo = "";
+					int CEoccurences = 0;
+					double CExcorr = 0;
+					int LCoccurences = 0;
+					double LCxcorr = 0;
+					double ConfidenceScore = 0;
+					double CEmz = 0;
+					double LCmz = 0;
+					double Averagemz = 0;
+					String CEValidation = "-";
+
+					MusterID = result5.getString("Muster_ID");
+					OldSeq = result5.getString("Muster_Old_Sequence");
+					MusterTime = result5.getDouble("Muster_CE_t");
+					MusterMass = result5.getDouble("Muster_Exp_Mass");
+					CEValidation = result5.getString("CE_Valid_Sequence");
+					NewSeq = result5
+							.getString("Sequence");
+				
+					
+					ProtInfo = result5.getString("Protein_Info");
+					CEmz = result5.getDouble("Average_m_z_Da");
+					CEoccurences = result5.getInt("Occurrences");
+					CExcorr = result5.getDouble("Average_Xcorr");
+					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
+					
+					String queryCONFLICTHIGHCONF = "SELECT * FROM conflict_highconfidencepeptide WHERE Muster_ID ='"
+							+ MusterID + "' AND New_Sequence = '" + NewSeq +"'";
+
+					int rsSize6 = 0;
+					Connection connection6 = getConn();
+					Statement s6 = connection6
+							.createStatement();
+					try {
+						ResultSet result6 = s6
+								.executeQuery(queryCONFLICTHIGHCONF);
+						rsSize6 = getResultSetSize(result6);
+						if (rsSize6 == 0) {
+							ConfidenceScore = Math.sqrt(CEvectorfrequency
+									* CEvectorfrequency + CEvectoroccurence
+									* CEvectoroccurence + 0.5 * 0.5);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = CEmz;
+							updateConflictHighConfidenceDB(MusterID,
+									MusterMass, MusterTime, OldSeq, NewSeq,
+									ProtInfo, Averagemz, CEoccurences,
+									CExcorr, 0, 0, ConfidenceScore,
+									CEValidation);						
+						}
+						result6.close();
+						s6.close();
+						connection6.close();
+					} catch (Throwable ignore) {
+						System.err
+								.println("Mysql Statement Error: "
+										+ queryCONFLICTHIGHCONF);
+						ignore.printStackTrace();
+					}
+
+				}
+			}
+			result5.close();
+			s5.close();
+			connection5.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: "
+					+ queryCEMSMSCONFLICTMISSING);
+			ignore.printStackTrace();
+		}
+		
+		
+		// add missing LCConflict seq 
+		String queryLCMSMSCONFLICTMISSING = "SELECT * FROM LCMSMSCONFLICT";
+		int rsSize7 = 0;
+		Connection connection7 = getConn();
+		Statement s7 = connection7.createStatement();
+		try {
+			ResultSet result7 = s7
+					.executeQuery(queryLCMSMSCONFLICTMISSING);
+			rsSize7 = getResultSetSize(result7);
+			if (rsSize7 != 0) {
+				while (result7.next()) {			
+					String MusterID = "";
+					double MusterMass = 0;
+					double MusterTime = 0;
+					String OldSeq = "";
+					String NewSeq = "";
+					String ProtInfo = "";
+					int CEoccurences = 0;
+					double CExcorr = 0;
+					int LCoccurences = 0;
+					double LCxcorr = 0;
+					double ConfidenceScore = 0;
+					double CEmz = 0;
+					double LCmz = 0;
+					double Averagemz = 0;
+					String CEValidation = "-";
+
+					MusterID = result7.getString("Muster_ID");
+					OldSeq = result7.getString("Muster_Old_Sequence");
+					MusterTime = result7.getDouble("Muster_CE_t");
+					MusterMass = result7.getDouble("Muster_Exp_Mass");
+					NewSeq = result7
+							.getString("Sequence");
+					
+					ProtInfo = result7.getString("Protein_Info");
+					LCmz = result7.getDouble("Average_m_z_Da");
+					LCoccurences = result7.getInt("Occurrences");
+					LCxcorr = result7.getDouble("Average_Xcorr");
+					double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
+					double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
+					
+					String queryCONFLICTHIGHCONF = "SELECT * FROM conflict_highconfidencepeptide WHERE Muster_ID ='"
+							+ MusterID + "' AND New_Sequence = '" + NewSeq +"'";
+
+					int rsSize8 = 0;
+					Connection connection8 = getConn();
+					Statement s8 = connection8
+							.createStatement();
+					try {
+						ResultSet result8 = s8
+								.executeQuery(queryCONFLICTHIGHCONF);
+						rsSize8 = getResultSetSize(result8);
+						if (rsSize8 == 0) {
+							ConfidenceScore = Math.sqrt(0 + 0 + LCvectorfrequency
+									* LCvectorfrequency + LCvectoroccurence
+									* LCvectoroccurence);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = LCmz;
+							updateConflictHighConfidenceDB(MusterID,
+									MusterMass, MusterTime, OldSeq, NewSeq,
+									ProtInfo, Averagemz, 0,
+									0, LCoccurences, LCxcorr, ConfidenceScore,
+									CEValidation);						
+						}
+						result8.close();
+						s8.close();
+						connection8.close();
+					} catch (Throwable ignore) {
+						System.err
+								.println("Mysql Statement Error: "
+										+ queryCONFLICTHIGHCONF);
+						ignore.printStackTrace();
+					}
+
+				}
+			}
+			result7.close();
+			s7.close();
+			connection7.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: "
+					+ queryLCMSMSCONFLICTMISSING);
+			ignore.printStackTrace();
+		}
 
 	}
 
-	private void forEachCESelected(String queryCEMSMSSELECTED, int maxCEOcc,
-			double maxCEXcorr, int maxLCOcc, double maxLCXcorr)
+	private boolean forEachCESelected(String queryCEMSMSSELECTED, int maxCEOcc,
+			double maxCEXcorr, int maxLCOcc, double maxLCXcorr, boolean output)
 			throws SQLException {
+		int rsSize = 0;
 		Connection connection = getConn();
 		Statement s = connection.createStatement();
 		try {
 			ResultSet result = s.executeQuery(queryCEMSMSSELECTED);
-			while (result.next()) {
+			rsSize = getResultSetSize(result);
+			if (rsSize != 0) {
+				output = true;
+				while (result.next()) {
 
-				String MusterID = "";
-				double MusterMass = 0;
-				double MusterTime = 0;
-				String OldSeq = "";
-				String NewSeq = "";
-				String ProtInfo = "";
-				int CEoccurences = 0;
-				double CExcorr = 0;
-				int LCoccurences = 0;
-				double LCxcorr = 0;
-				double ConfidenceScore = 0;
-				double CEmz = 0;
-				double LCmz = 0;
-				double Averagemz = 0;
-				String CEValidation = "-";
+					String MusterID = "";
+					double MusterMass = 0;
+					double MusterTime = 0;
+					String OldSeq = "";
+					String NewSeq = "";
+					String ProtInfo = "";
+					int CEoccurences = 0;
+					double CExcorr = 0;
+					int LCoccurences = 0;
+					double LCxcorr = 0;
+					double ConfidenceScore = 0;
+					double CEmz = 0;
+					double LCmz = 0;
+					double Averagemz = 0;
+					String CEValidation = "-";
 
-				MusterID = result.getString("Muster_ID");
-				OldSeq = result.getString("Muster_Old_Sequence");
-				MusterTime = result.getDouble("Muster_CE_t");
-				MusterMass = result.getDouble("Muster_Exp_Mass");
-				CEValidation = result.getString("CE_Valid_Sequence");
+					MusterID = result.getString("Muster_ID");
+					OldSeq = result.getString("Muster_Old_Sequence");
+					MusterTime = result.getDouble("Muster_CE_t");
+					MusterMass = result.getDouble("Muster_Exp_Mass");
+					CEValidation = result.getString("CE_Valid_Sequence");
 
-				NewSeq = result.getString("Sequence");
-				
-				
-				String NewSeqArray[] = NewSeq.split("");
-				int ip = 0;
-				int im = 0;
-				int iq = 0;
-				int in = 0;
-				for (String string : NewSeqArray) {
-					ip = string.equals("p") ? ip + 1 : ip;
-					im = string.equals("p") ? im + 1 : im;
-					iq = string.equals("p") ? iq + 1 : iq;
-					in = string.equals("p") ? in + 1 : in;
-				}
-				String NewSeqDecomp = NewSeq.toUpperCase() + "," + Integer.toString(ip) + "," + Integer.toString(im) + "," + Integer.toString(iq) + "," + Integer.toString(in);
-				
-				ProtInfo = result.getString("Protein_Info");
-				CEmz = result.getDouble("Average_m_z_Da");
-				CEoccurences = result.getInt("Occurrences");
-				CExcorr = result.getDouble("Average_Xcorr");
-				double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
-				double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
+					NewSeq = result.getString("Sequence");
 
-				// Check LCMSMSSELECTED
-				String queryLCMSMSSELECTEDALSO = "SELECT * FROM LCMSMSSELECTED WHERE Muster_ID ='"
-						+ MusterID + "' AND Confidence NOT LIKE 'Pending'";
-				int rsSize2 = 0;
-				Connection connection2 = getConn();
-				Statement s2 = connection2.createStatement();
-				try {
-					ResultSet result2 = s2
-							.executeQuery(queryLCMSMSSELECTEDALSO);
-					rsSize2 = getResultSetSize(result2);
+					String NewSeqArray[] = NewSeq.split("");
+					int ip = 0;
+					int im = 0;
+					int iq = 0;
+					int in = 0;
+					for (String string : NewSeqArray) {
+						ip = string.equals("p") ? ip + 1 : ip;
+						im = string.equals("p") ? im + 1 : im;
+						iq = string.equals("p") ? iq + 1 : iq;
+						in = string.equals("p") ? in + 1 : in;
+					}
+					String NewSeqDecomp = NewSeq.toUpperCase() + ","
+							+ Integer.toString(ip) + "," + Integer.toString(im)
+							+ "," + Integer.toString(iq) + ","
+							+ Integer.toString(in);
 
-					if (rsSize2 == 0) {
-						// NOT in LCMSMSSELECTED; Check LCMSMSCONFLICT
-						boolean samesequence = false;
-						String queryLCMSMSCONFLICTALSO = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID ='"
-								+ MusterID
-								+ "' AND Confidence NOT Like 'Pending'";
-						int rsSize3 = 0;
-						Connection connection3 = getConn();
-						Statement s3 = connection3.createStatement();
-						try {
-							ResultSet result3 = s3
-									.executeQuery(queryLCMSMSCONFLICTALSO);
-							rsSize3 = getResultSetSize(result3);
+					ProtInfo = result.getString("Protein_Info");
+					CEmz = result.getDouble("Average_m_z_Da");
+					CEoccurences = result.getInt("Occurrences");
+					CExcorr = result.getDouble("Average_Xcorr");
+					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
 
-							if (rsSize3 == 0) {
-								System.out.println("CE+ LC- HC");
-								// MusterID only in CESELECTED : CE+ LC- HC
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + 0.5 * 0.5);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + LCmz) / 2;
-								updateHighConfidenceDB(MusterID, MusterMass,
-										MusterTime, OldSeq, NewSeq, ProtInfo,
-										Averagemz, CEoccurences, CExcorr, 0, 0,
-										ConfidenceScore, CEValidation);
-							} else {
-								// MusterID both CESELECTED and LCCONFLICT;
-								// check if contains same sequence
-								samesequence = isSameSequence(NewSeqDecomp, result3);
+					// Check LCMSMSSELECTED
+					String queryLCMSMSSELECTEDALSO = "SELECT * FROM LCMSMSSELECTED WHERE Muster_ID ='"
+							+ MusterID + "' AND Confidence NOT LIKE 'Pending'";
+					int rsSize2 = 0;
+					Connection connection2 = getConn();
+					Statement s2 = connection2.createStatement();
+					try {
+						ResultSet result2 = s2
+								.executeQuery(queryLCMSMSSELECTEDALSO);
+						rsSize2 = getResultSetSize(result2);
+
+						if (rsSize2 == 0) {
+							// NOT in LCMSMSSELECTED; Check LCMSMSCONFLICT
+							boolean samesequence = false;
+							String queryLCMSMSCONFLICTALSO = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID ='"
+									+ MusterID
+									+ "' AND Confidence NOT Like 'Pending'";
+							int rsSize3 = 0;
+							Connection connection3 = getConn();
+							Statement s3 = connection3.createStatement();
+							try {
+								ResultSet result3 = s3
+										.executeQuery(queryLCMSMSCONFLICTALSO);
+								rsSize3 = getResultSetSize(result3);
+
+								if (rsSize3 == 0) {
+									System.out.println("CE+ LC- HC");
+									// MusterID only in CESELECTED : CE+ LC- HC
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence + 0.5
+													* 0.5);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = (CEmz + LCmz) / 2;
+									updateHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr, 0, 0,
+											ConfidenceScore, CEValidation);
+								} else {
+									// MusterID both CESELECTED and LCCONFLICT;
+									// check if contains same sequence
+									samesequence = isSameSequence(NewSeqDecomp,
+											result3);
+								}
+								result3.close();
+								s3.close();
+								connection3.close();
+							} catch (Throwable ignore) {
+								System.err.println("Mysql Statement Error: "
+										+ queryLCMSMSCONFLICTALSO);
+								ignore.printStackTrace();
 							}
-							result3.close();
-							s3.close();
-							connection3.close();
-						} catch (Throwable ignore) {
-							System.err.println("Mysql Statement Error: "
-									+ queryLCMSMSCONFLICTALSO);
-							ignore.printStackTrace();
-						}
-						Connection connection4 = getConn();
-						Statement s4 = connection4.createStatement();
-						try {
-							ResultSet result4 = s4
-									.executeQuery(queryLCMSMSCONFLICTALSO);
+							Connection connection4 = getConn();
+							Statement s4 = connection4.createStatement();
+							try {
+								ResultSet result4 = s4
+										.executeQuery(queryLCMSMSCONFLICTALSO);
 
-							if (samesequence && rsSize3 > 1) {
-								System.out
-										.println("CE+ LC+ / many CE- LC+ conflict with no pending");
-								// CE+ LC+ / many CE- LC+ conflict
-								while (result4.next()) {
-									String LCSeq = result4
-											.getString("Sequence");
-									String LCProtInfo = result4
-											.getString("Protein_Info");
-									LCmz = result4.getDouble("Average_m_z_Da");
-									LCoccurences = result4
-											.getInt("Occurrences");
-									LCxcorr = result4
-											.getDouble("Average_Xcorr");
-									double LCvectorfrequency = LCoccurences * 1
-											/ maxLCOcc;
-									double LCvectoroccurence = LCxcorr * 1
-											/ maxLCXcorr;
-									
-									String LCseqArray[] = LCSeq.split("");
-									int ip2 = 0;
-									int im2 = 0;
-									int iq2 = 0;
-									int in2 = 0;
-									for (String string : LCseqArray) {
-										ip2 = string.equals("p") ? ip2 + 1 : ip2;
-										im2 = string.equals("p") ? im2 + 1 : im2;
-										iq2 = string.equals("p") ? iq2 + 1 : iq2;
-										in2 = string.equals("p") ? in2 + 1 : in2;
+								if (samesequence && rsSize3 > 1) {
+									System.out
+											.println("CE+ LC+ / many CE- LC+ conflict with no pending");
+									// CE+ LC+ / many CE- LC+ conflict
+									while (result4.next()) {
+										String LCSeq = result4
+												.getString("Sequence");
+										String LCProtInfo = result4
+												.getString("Protein_Info");
+										LCmz = result4
+												.getDouble("Average_m_z_Da");
+										LCoccurences = result4
+												.getInt("Occurrences");
+										LCxcorr = result4
+												.getDouble("Average_Xcorr");
+										double LCvectorfrequency = LCoccurences
+												* 1 / maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1
+												/ maxLCXcorr;
+
+										String LCseqArray[] = LCSeq.split("");
+										int ip2 = 0;
+										int im2 = 0;
+										int iq2 = 0;
+										int in2 = 0;
+										for (String string : LCseqArray) {
+											ip2 = string.equals("p") ? ip2 + 1
+													: ip2;
+											im2 = string.equals("p") ? im2 + 1
+													: im2;
+											iq2 = string.equals("p") ? iq2 + 1
+													: iq2;
+											in2 = string.equals("p") ? in2 + 1
+													: in2;
+										}
+										String LCseqDecomp = LCSeq
+												.toUpperCase()
+												+ ","
+												+ Integer.toString(ip2)
+												+ ","
+												+ Integer.toString(im2)
+												+ ","
+												+ Integer.toString(iq2)
+												+ ","
+												+ Integer.toString(in2);
+
+										if (LCseqDecomp.equals(NewSeqDecomp)) {
+											CEValidation = result
+													.getString("CE_Valid_Sequence");
+											ConfidenceScore = Math
+													.sqrt(CEvectorfrequency
+															* CEvectorfrequency
+															+ CEvectoroccurence
+															* CEvectoroccurence
+															+ LCvectorfrequency
+															* LCvectorfrequency
+															+ LCvectoroccurence
+															* LCvectoroccurence
+															+ 1 * 1);
+											ConfidenceScore = ConfidenceScore / 2.23606798;
+											Averagemz = (CEmz + LCmz) / 2;
+											updateConflictHighConfidenceDB(
+													MusterID, MusterMass,
+													MusterTime, OldSeq, NewSeq,
+													ProtInfo, Averagemz,
+													CEoccurences, CExcorr,
+													LCoccurences, LCxcorr,
+													ConfidenceScore,
+													CEValidation);
+										} else {
+											CEValidation = "-";
+											ConfidenceScore = Math
+													.sqrt(LCvectorfrequency
+															* LCvectorfrequency
+															+ LCvectoroccurence
+															* LCvectoroccurence
+															+ 0 * 0);
+											ConfidenceScore = ConfidenceScore / 2.23606798;
+											Averagemz = LCmz;
+											updateConflictHighConfidenceDB(
+													MusterID, MusterMass,
+													MusterTime, OldSeq, LCSeq,
+													LCProtInfo, Averagemz, 0,
+													0, LCoccurences, LCxcorr,
+													ConfidenceScore,
+													CEValidation);
+										}
+
 									}
-									String LCseqDecomp = LCSeq.toUpperCase() + "," + Integer.toString(ip2) + "," + Integer.toString(im2) + "," + Integer.toString(iq2) + "," + Integer.toString(in2);
-									
-									if (LCseqDecomp.equals(NewSeqDecomp)) {
+
+								} else if (rsSize3 > 1) {
+									System.out
+											.println("CE+ LC- / many CE- LC+ conflict with no Pending");
+									// CE+ LC- / many CE- LC+ conflict
+									CEValidation = result
+											.getString("CE_Valid_Sequence");
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence + 0.5
+													* 0.5);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = CEmz;
+									updateConflictHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr, 0, 0,
+											ConfidenceScore, CEValidation);
+									while (result4.next()) {
 										CEValidation = "-";
+										String LCSeq = result4
+												.getString("Sequence");
+										String LCProtInfo = result4
+												.getString("Protein_Info");
+										LCmz = result4
+												.getDouble("Average_m_z_Da");
+										LCoccurences = result4
+												.getInt("Occurrences");
+										LCxcorr = result4
+												.getDouble("Average_Xcorr");
+										double LCvectorfrequency = LCoccurences
+												* 1 / maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1
+												/ maxLCXcorr;
+										ConfidenceScore = Math
+												.sqrt(LCvectorfrequency
+														* LCvectorfrequency
+														+ LCvectoroccurence
+														* LCvectoroccurence + 0
+														* 0);
+										ConfidenceScore = ConfidenceScore / 2.23606798;
+										Averagemz = LCmz;
+										updateConflictHighConfidenceDB(
+												MusterID, MusterMass,
+												MusterTime, OldSeq, LCSeq,
+												LCProtInfo, Averagemz, 0, 0,
+												LCoccurences, LCxcorr,
+												ConfidenceScore, CEValidation);
+									}
+
+								} else if (samesequence && rsSize3 == 1) {
+									// CE+ LC+ HC (one of LCMSMSCONFLICT was
+									// Pending)
+									System.out.println("CE+ LC+ HC");
+									// same sequence : CE+ LC+ HC
+									while (result4.next()) {
+										LCmz = result4
+												.getDouble("Average_m_z_Da");
+										LCoccurences = result4
+												.getInt("Occurrences");
+										LCxcorr = result4
+												.getDouble("Average_Xcorr");
+										double LCvectorfrequency = LCoccurences
+												* 1 / maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1
+												/ maxLCXcorr;
 										ConfidenceScore = Math
 												.sqrt(CEvectorfrequency
 														* CEvectorfrequency
@@ -242,14 +586,50 @@ public class Main_Identifypeptides_mixed {
 														* 1);
 										ConfidenceScore = ConfidenceScore / 2.23606798;
 										Averagemz = (CEmz + LCmz) / 2;
+										updateHighConfidenceDB(MusterID,
+												MusterMass, MusterTime, OldSeq,
+												NewSeq, ProtInfo, Averagemz,
+												CEoccurences, CExcorr,
+												LCoccurences, LCxcorr,
+												ConfidenceScore, CEValidation);
+									}
+								} else if (rsSize3 == 1) {
+									// CE+ LC- / CE- LC+ conflict (one of
+									// LCMSMSCONFLICT was Pending)
+									while (result4.next()) {
+										String LCSeq = result4
+												.getString("Sequence");
+										String LCProtInfo = result4
+												.getString("Protein_Info");
+										LCmz = result4
+												.getDouble("Average_m_z_Da");
+										LCoccurences = result4
+												.getInt("Occurrences");
+										LCxcorr = result4
+												.getDouble("Average_Xcorr");
+										double LCvectorfrequency = LCoccurences
+												* 1 / maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1
+												/ maxLCXcorr;
+										// one only in CE
+										CEValidation = result
+												.getString("CE_Valid_Sequence");
+										ConfidenceScore = Math
+												.sqrt(CEvectorfrequency
+														* CEvectorfrequency
+														+ CEvectoroccurence
+														* CEvectoroccurence
+														+ 0.5 * 0.5);
+										ConfidenceScore = ConfidenceScore / 2.23606798;
+										Averagemz = CEmz;
 										updateConflictHighConfidenceDB(
 												MusterID, MusterMass,
 												MusterTime, OldSeq, NewSeq,
 												ProtInfo, Averagemz,
-												CEoccurences, CExcorr,
-												LCoccurences, LCxcorr,
+												CEoccurences, CExcorr, 0, 0,
 												ConfidenceScore, CEValidation);
-									} else {
+										// one only in LC
+										CEValidation = "-";
 										ConfidenceScore = Math
 												.sqrt(LCvectorfrequency
 														* LCvectorfrequency
@@ -257,7 +637,7 @@ public class Main_Identifypeptides_mixed {
 														* LCvectoroccurence + 0
 														* 0);
 										ConfidenceScore = ConfidenceScore / 2.23606798;
-										Averagemz = (0 + LCmz) / 2;
+										Averagemz = LCmz;
 										updateConflictHighConfidenceDB(
 												MusterID, MusterMass,
 												MusterTime, OldSeq, LCSeq,
@@ -265,58 +645,590 @@ public class Main_Identifypeptides_mixed {
 												LCoccurences, LCxcorr,
 												ConfidenceScore, CEValidation);
 									}
-
 								}
 
-							} else if (rsSize3 > 1) {
-								System.out
-										.println("CE+ LC- / many CE- LC+ conflict with no Pending");
-								// CE+ LC- / many CE- LC+ conflict
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + 0.5 * 0.5);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + 0) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, NewSeq,
-										ProtInfo, Averagemz, CEoccurences,
-										CExcorr, 0, 0, ConfidenceScore,
-										CEValidation);
-								while (result4.next()) {
-									CEValidation = "-";
-									String LCSeq = result4
-											.getString("Sequence");
-									String LCProtInfo = result4
-											.getString("Protein_Info");
-									LCmz = result4.getDouble("Average_m_z_Da");
-									LCoccurences = result4
-											.getInt("Occurrences");
-									LCxcorr = result4
-											.getDouble("Average_Xcorr");
+								result4.close();
+								s4.close();
+								connection4.close();
+							} catch (Throwable ignore) {
+								System.err.println("Mysql Statement Error: "
+										+ queryLCMSMSCONFLICTALSO);
+								ignore.printStackTrace();
+							}
+
+						} else {
+							while (result2.next()) {
+								// MusterID both CESELECTED and LCSELECTED
+								String LCSeq = result2.getString("Sequence");
+								String LCProtInfo = result2
+										.getString("Protein_Info");
+								LCmz = result2.getDouble("Average_m_z_Da");
+								LCoccurences = result2.getInt("Occurrences");
+								LCxcorr = result2.getDouble("Average_Xcorr");
+
+								String LCseqArray[] = LCSeq.split("");
+								int ip2 = 0;
+								int im2 = 0;
+								int iq2 = 0;
+								int in2 = 0;
+								for (String string : LCseqArray) {
+									ip2 = string.equals("p") ? ip2 + 1 : ip2;
+									im2 = string.equals("p") ? im2 + 1 : im2;
+									iq2 = string.equals("p") ? iq2 + 1 : iq2;
+									in2 = string.equals("p") ? in2 + 1 : in2;
+								}
+								String LCseqDecomp = LCSeq.toUpperCase() + ","
+										+ Integer.toString(ip2) + ","
+										+ Integer.toString(im2) + ","
+										+ Integer.toString(iq2) + ","
+										+ Integer.toString(in2);
+
+								if (LCseqDecomp.equals(NewSeqDecomp)) {
+									System.out.println("CE+ LC+ HC");
+									// same sequence : CE+ LC+ HC
+									CEValidation = result
+											.getString("CE_Valid_Sequence");
 									double LCvectorfrequency = LCoccurences * 1
 											/ maxLCOcc;
 									double LCvectoroccurence = LCxcorr * 1
 											/ maxLCXcorr;
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence
+													+ LCvectorfrequency
+													* LCvectorfrequency
+													+ LCvectoroccurence
+													* LCvectoroccurence + 1 * 1);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = (CEmz + LCmz) / 2;
+									updateHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr,
+											LCoccurences, LCxcorr,
+											ConfidenceScore, CEValidation);
+								} else {
+									System.out.println(NewSeq + " " + LCSeq);
+									System.out
+											.println("CE+ LC- / CE- LC+ Conflict");
+									// conflict sequences (one only in CE and
+									// one
+									// only
+									// in LC): CE+ LC- / CE- LC+ Conflict
+									double LCvectorfrequency = LCoccurences * 1
+											/ maxLCOcc;
+									double LCvectoroccurence = LCxcorr * 1
+											/ maxLCXcorr;
+									// one only in CE
+									CEValidation = result
+											.getString("CE_Valid_Sequence");
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence + 0.5
+													* 0.5);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = CEmz;
+									updateConflictHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr, 0, 0,
+											ConfidenceScore, CEValidation);
+									// one only in LC
+									CEValidation = "-";
 									ConfidenceScore = Math
 											.sqrt(LCvectorfrequency
 													* LCvectorfrequency
 													+ LCvectoroccurence
 													* LCvectoroccurence + 0 * 0);
 									ConfidenceScore = ConfidenceScore / 2.23606798;
-									Averagemz = (0 + LCmz) / 2;
+									Averagemz = LCmz;
 									updateConflictHighConfidenceDB(MusterID,
 											MusterMass, MusterTime, OldSeq,
 											LCSeq, LCProtInfo, Averagemz, 0, 0,
 											LCoccurences, LCxcorr,
 											ConfidenceScore, CEValidation);
 								}
+							}
+						}
+						result2.close();
+						s2.close();
+						connection2.close();
+					} catch (Throwable ignore) {
+						System.err.println("Mysql Statement Error: "
+								+ queryCEMSMSSELECTED);
+						ignore.printStackTrace();
+					}
+				}
+			}
+			result.close();
+			s.close();
+			connection.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + queryCEMSMSSELECTED);
+			ignore.printStackTrace();
+		}
+		return output;
+	}
 
-							} else if (samesequence && rsSize3 == 1) {
-								// CE+ LC+ HC (one of LCMSMSCONFLICT was
-								// Pending)
-								System.out.println("CE+ LC+ HC");
-								// same sequence : CE+ LC+ HC
-								while (result4.next()) {
+	private boolean forEachLCSelected(String queryLCMSMSSELECTED, int maxCEOcc,
+			double maxCEXcorr, int maxLCOcc, double maxLCXcorr, boolean output)
+			throws SQLException {
+
+		int rsSize = 0;
+		Connection connection = getConn();
+		Statement s = connection.createStatement();
+		try {
+			ResultSet result = s.executeQuery(queryLCMSMSSELECTED);
+			rsSize = getResultSetSize(result);
+			if (rsSize != 0) {
+				output = true;
+				while (result.next()) {
+
+					String MusterID = "";
+					double MusterMass = 0;
+					double MusterTime = 0;
+					String OldSeq = "";
+					String NewSeq = "";
+					String ProtInfo = "";
+					int CEoccurences = 0;
+					double CExcorr = 0;
+					int LCoccurences = 0;
+					double LCxcorr = 0;
+					double ConfidenceScore = 0;
+					double CEmz = 0;
+					double LCmz = 0;
+					double Averagemz = 0;
+
+					MusterID = result.getString("Muster_ID");
+					OldSeq = result.getString("Muster_Old_Sequence");
+					MusterTime = result.getDouble("Muster_CE_t");
+					MusterMass = result.getDouble("Muster_Exp_Mass");
+
+					NewSeq = result.getString("Sequence");
+
+					String NewSeqArray[] = NewSeq.split("");
+					int ip = 0;
+					int im = 0;
+					int iq = 0;
+					int in = 0;
+					for (String string : NewSeqArray) {
+						ip = string.equals("p") ? ip + 1 : ip;
+						im = string.equals("p") ? im + 1 : im;
+						iq = string.equals("p") ? iq + 1 : iq;
+						in = string.equals("p") ? in + 1 : in;
+					}
+					String NewSeqDecomp = NewSeq.toUpperCase() + ","
+							+ Integer.toString(ip) + "," + Integer.toString(im)
+							+ "," + Integer.toString(iq) + ","
+							+ Integer.toString(in);
+
+					ProtInfo = result.getString("Protein_Info");
+					LCmz = result.getDouble("Average_m_z_Da");
+					LCoccurences = result.getInt("Occurrences");
+					LCxcorr = result.getDouble("Average_Xcorr");
+					double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
+					double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
+
+					String CEValidation = "-";
+
+					// Check CEMSMSCONFLICT
+					boolean samesequence = false;
+					String queryCEMSMSCONFLICTALSO = "SELECT * FROM CEMSMSCONFLICT WHERE Muster_ID ='"
+							+ MusterID + "'";
+					int rsSize3 = 0;
+					Connection connection3 = getConn();
+					Statement s3 = connection3.createStatement();
+					try {
+						ResultSet result3 = s3
+								.executeQuery(queryCEMSMSCONFLICTALSO);
+						rsSize3 = getResultSetSize(result3);
+
+						if (rsSize3 == 0) {
+							System.out.println("CE- LC+ HC");
+							// MusterID only in LCSELECTED : CE- LC+ HC
+							ConfidenceScore = Math.sqrt(LCvectorfrequency
+									* LCvectorfrequency + LCvectoroccurence
+									* LCvectoroccurence + 0 * 0);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = LCmz;
+							updateHighConfidenceDB(MusterID, MusterMass,
+									MusterTime, OldSeq, NewSeq, ProtInfo,
+									Averagemz, 0, 0, LCoccurences, LCxcorr,
+									ConfidenceScore, CEValidation);
+						} else {
+							// MusterID both LCSELECTED and CECONFLICT;
+							// check if contains same sequence
+							samesequence = isSameSequence(NewSeqDecomp, result3);
+						}
+						result3.close();
+						s3.close();
+						connection3.close();
+					} catch (Throwable ignore) {
+						System.err.println("Mysql Statement Error: "
+								+ queryCEMSMSCONFLICTALSO);
+						ignore.printStackTrace();
+					}
+					Connection connection4 = getConn();
+					Statement s4 = connection4.createStatement();
+					try {
+						ResultSet result4 = s4
+								.executeQuery(queryCEMSMSCONFLICTALSO);
+
+						if (samesequence && rsSize3 != 0) {
+							System.out
+									.println("CE+ LC+ / many CE+ LC- conflict");
+							// CE+ LC+ / many CE+ LC- conflict
+							while (result4.next()) {
+								String CESeq = result4.getString("Sequence");
+								String CEProtInfo = result4
+										.getString("Protein_Info");
+								CEmz = result4.getDouble("Average_m_z_Da");
+								CEoccurences = result4.getInt("Occurrences");
+								CExcorr = result4.getDouble("Average_Xcorr");
+								CEValidation = result4
+										.getString("CE_Valid_Sequence");
+								double CEvectorfrequency = CEoccurences * 1
+										/ maxCEOcc;
+								double CEvectoroccurence = CExcorr * 1
+										/ maxCEXcorr;
+
+								String CEseqArray[] = CESeq.split("");
+								int ip2 = 0;
+								int im2 = 0;
+								int iq2 = 0;
+								int in2 = 0;
+								for (String string : CEseqArray) {
+									ip2 = string.equals("p") ? ip2 + 1 : ip2;
+									im2 = string.equals("p") ? im2 + 1 : im2;
+									iq2 = string.equals("p") ? iq2 + 1 : iq2;
+									in2 = string.equals("p") ? in2 + 1 : in2;
+								}
+								String CEseqDecomp = CESeq.toUpperCase() + ","
+										+ Integer.toString(ip2) + ","
+										+ Integer.toString(im2) + ","
+										+ Integer.toString(iq2) + ","
+										+ Integer.toString(in2);
+
+								if (CEseqDecomp.equals(NewSeqDecomp)) {
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence
+													+ LCvectorfrequency
+													* LCvectorfrequency
+													+ LCvectoroccurence
+													* LCvectoroccurence + 1 * 1);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = (CEmz + LCmz) / 2;
+									updateConflictHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr,
+											LCoccurences, LCxcorr,
+											ConfidenceScore, CEValidation);
+								} else {
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence + 0.5
+													* 0.5);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = CEmz;
+									updateConflictHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											CESeq, CEProtInfo, Averagemz,
+											CEoccurences, CExcorr, 0, 0,
+											ConfidenceScore, CEValidation);
+								}
+
+							}
+
+						} else if (rsSize3 != 0) {
+							System.out
+									.println("CE- LC+ / many CE+ LC- conflict");
+							// CE- LC+ / many CE+ LC- conflict
+							ConfidenceScore = Math.sqrt(LCvectorfrequency
+									* LCvectorfrequency + LCvectoroccurence
+									* LCvectoroccurence + 0 * 0);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = LCmz;
+							updateConflictHighConfidenceDB(MusterID,
+									MusterMass, MusterTime, OldSeq, NewSeq,
+									ProtInfo, Averagemz, 0, 0, LCoccurences,
+									LCxcorr, ConfidenceScore, CEValidation);
+							while (result4.next()) {
+								String CESeq = result4.getString("Sequence");
+								String CEProtInfo = result4
+										.getString("Protein_Info");
+								CEmz = result4.getDouble("Average_m_z_Da");
+								CEoccurences = result4.getInt("Occurrences");
+								CExcorr = result4.getDouble("Average_Xcorr");
+								CEValidation = result4
+										.getString("CE_Valid_Sequence");
+								double CEvectorfrequency = CEoccurences * 1
+										/ maxCEOcc;
+								double CEvectoroccurence = CExcorr * 1
+										/ maxCEXcorr;
+								ConfidenceScore = Math.sqrt(CEvectorfrequency
+										* CEvectorfrequency + CEvectoroccurence
+										* CEvectoroccurence + 0.5 * 0.5);
+								ConfidenceScore = ConfidenceScore / 2.23606798;
+								Averagemz = CEmz;
+								updateConflictHighConfidenceDB(MusterID,
+										MusterMass, MusterTime, OldSeq, CESeq,
+										CEProtInfo, Averagemz, CEoccurences,
+										CExcorr, 0, 0, ConfidenceScore,
+										CEValidation);
+							}
+						}
+						result4.close();
+						s4.close();
+						connection4.close();
+					} catch (Throwable ignore) {
+						System.err.println("Mysql Statement Error: "
+								+ queryCEMSMSCONFLICTALSO);
+						ignore.printStackTrace();
+					}
+
+				}
+			}
+			result.close();
+			s.close();
+			connection.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + queryLCMSMSSELECTED);
+			ignore.printStackTrace();
+		}
+		return output;
+	}
+
+	private boolean forEachCEConflict(String queryCEConflict, int maxCEOcc,
+			double maxCEXcorr, int maxLCOcc, double maxLCXcorr, boolean output)
+			throws SQLException {
+
+		int rsSize = 0;
+		Connection connection = getConn();
+		Statement s = connection.createStatement();
+		try {
+			ResultSet result = s.executeQuery(queryCEConflict);
+			rsSize = getResultSetSize(result);
+			if (rsSize != 0) {
+				output = true;
+				while (result.next()) {
+					String MusterID = "";
+					double MusterMass = 0;
+					double MusterTime = 0;
+					String OldSeq = "";
+					String NewSeq = "";
+					String ProtInfo = "";
+					int CEoccurences = 0;
+					double CExcorr = 0;
+					int LCoccurences = 0;
+					double LCxcorr = 0;
+					double ConfidenceScore = 0;
+					double CEmz = 0;
+					double LCmz = 0;
+					double Averagemz = 0;
+					String CEValidation = "-";
+
+					MusterID = result.getString("Muster_ID");
+					OldSeq = result.getString("Muster_Old_Sequence");
+					MusterTime = result.getDouble("Muster_CE_t");
+					MusterMass = result.getDouble("Muster_Exp_Mass");
+					CEValidation = result.getString("CE_Valid_Sequence");
+
+					NewSeq = result.getString("Sequence");
+
+					String NewSeqArray[] = NewSeq.split("");
+					int ip = 0;
+					int im = 0;
+					int iq = 0;
+					int in = 0;
+					for (String string : NewSeqArray) {
+						ip = string.equals("p") ? ip + 1 : ip;
+						im = string.equals("p") ? im + 1 : im;
+						iq = string.equals("p") ? iq + 1 : iq;
+						in = string.equals("p") ? in + 1 : in;
+					}
+					String NewSeqDecomp = NewSeq.toUpperCase() + ","
+							+ Integer.toString(ip) + "," + Integer.toString(im)
+							+ "," + Integer.toString(iq) + ","
+							+ Integer.toString(in);
+
+					ProtInfo = result.getString("Protein_Info");
+					CEmz = result.getDouble("Average_m_z_Da");
+					CEoccurences = result.getInt("Occurrences");
+					CExcorr = result.getDouble("Average_Xcorr");
+					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
+
+					// Check LCMSMSCONFLICT
+					boolean samesequence = false;
+					String queryLCMSMSCONFLICTALSO = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID ='"
+							+ MusterID + "' AND CONFIDENCE NOT LIKE 'Pending'";
+					int rsSize3 = 0;
+					Connection connection3 = getConn();
+					Statement s3 = connection3.createStatement();
+					try {
+						ResultSet result3 = s3
+								.executeQuery(queryLCMSMSCONFLICTALSO);
+						rsSize3 = getResultSetSize(result3);
+
+						if (rsSize3 == 0) {
+							System.out.println("CE+ LC- HC");
+							// MusterID only in CECONFLICT : many CE+ LC-
+							// Conflict
+							ConfidenceScore = Math.sqrt(CEvectorfrequency
+									* CEvectorfrequency + CEvectoroccurence
+									* CEvectoroccurence + 0.5 * 0.5);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = (CEmz + LCmz) / 2;
+							updateConflictHighConfidenceDB(MusterID,
+									MusterMass, MusterTime, OldSeq, NewSeq,
+									ProtInfo, Averagemz, CEoccurences, CExcorr,
+									0, 0, ConfidenceScore, CEValidation);
+						} else {
+							// MusterID both CECONFLICT and LCCONFLICT;
+							// check if contains same sequence
+							samesequence = isSameSequence(NewSeqDecomp, result3);
+						}
+						result3.close();
+						s3.close();
+						connection3.close();
+					} catch (Throwable ignore) {
+						System.err.println("Mysql Statement Error: "
+								+ queryLCMSMSCONFLICTALSO);
+						ignore.printStackTrace();
+					}
+					Connection connection4 = getConn();
+					Statement s4 = connection4.createStatement();
+					try {
+						ResultSet result4 = s4
+								.executeQuery(queryLCMSMSCONFLICTALSO);
+
+						if (samesequence && rsSize3 > 1) {
+
+							System.out
+									.println("CE+ LC+ / many CE- LC+ conflict no pending");
+							// many CE+ LC+ / many CE- LC+ conflict no Pending
+							while (result4.next()) {
+								String LCSeq = result4.getString("Sequence");
+
+								System.out.println(NewSeq + " " + LCSeq);
+								String LCProtInfo = result4
+										.getString("Protein_Info");
+								LCmz = result4.getDouble("Average_m_z_Da");
+								LCoccurences = result4.getInt("Occurrences");
+								LCxcorr = result4.getDouble("Average_Xcorr");
+								double LCvectorfrequency = LCoccurences * 1
+										/ maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1
+										/ maxLCXcorr;
+
+								String LCseqArray[] = LCSeq.split("");
+								int ip2 = 0;
+								int im2 = 0;
+								int iq2 = 0;
+								int in2 = 0;
+								for (String string : LCseqArray) {
+									ip2 = string.equals("p") ? ip2 + 1 : ip2;
+									im2 = string.equals("p") ? im2 + 1 : im2;
+									iq2 = string.equals("p") ? iq2 + 1 : iq2;
+									in2 = string.equals("p") ? in2 + 1 : in2;
+								}
+								String LCseqDecomp = LCSeq.toUpperCase() + ","
+										+ Integer.toString(ip2) + ","
+										+ Integer.toString(im2) + ","
+										+ Integer.toString(iq2) + ","
+										+ Integer.toString(in2);
+								if (LCseqDecomp.equals(NewSeqDecomp)) {
+									CEValidation = result
+											.getString("CE_Valid_Sequence");
+									ConfidenceScore = Math
+											.sqrt(CEvectorfrequency
+													* CEvectorfrequency
+													+ CEvectoroccurence
+													* CEvectoroccurence
+													+ LCvectorfrequency
+													* LCvectorfrequency
+													+ LCvectoroccurence
+													* LCvectoroccurence + 1 * 1);
+									ConfidenceScore = ConfidenceScore / 2.23606798;
+									Averagemz = (CEmz + LCmz) / 2;
+									updateConflictHighConfidenceDB(MusterID,
+											MusterMass, MusterTime, OldSeq,
+											NewSeq, ProtInfo, Averagemz,
+											CEoccurences, CExcorr,
+											LCoccurences, LCxcorr,
+											ConfidenceScore, CEValidation);
+									// } else {
+									// CEValidation = "-";
+									// ConfidenceScore = Math
+									// .sqrt(LCvectorfrequency
+									// * LCvectorfrequency
+									// + LCvectoroccurence
+									// * LCvectoroccurence + 0 * 0);
+									// ConfidenceScore = ConfidenceScore /
+									// 2.23606798;
+									// Averagemz = LCmz;
+									// updateConflictHighConfidenceDB(MusterID,
+									// MusterMass, MusterTime, OldSeq,
+									// LCSeq, LCProtInfo, Averagemz, 0, 0,
+									// LCoccurences, LCxcorr,
+									// ConfidenceScore, CEValidation);
+								}
+
+							}
+
+						} else if (rsSize3 > 1) {
+							System.out
+									.println("CE+ LC- / many CE- LC+ conflict no pending");
+							// many CE+ LC- / many CE- LC+ conflict no pending
+							ConfidenceScore = Math.sqrt(CEvectorfrequency
+									* CEvectorfrequency + CEvectoroccurence
+									* CEvectoroccurence + 0.5 * 0.5);
+							ConfidenceScore = ConfidenceScore / 2.23606798;
+							Averagemz = CEmz;
+							updateConflictHighConfidenceDB(MusterID,
+									MusterMass, MusterTime, OldSeq, NewSeq,
+									ProtInfo, Averagemz, CEoccurences, CExcorr,
+									0, 0, ConfidenceScore, CEValidation);
+							while (result4.next()) {
+								String LCSeq = result4.getString("Sequence");
+								String LCProtInfo = result4
+										.getString("Protein_Info");
+								LCmz = result4.getDouble("Average_m_z_Da");
+								LCoccurences = result4.getInt("Occurrences");
+								LCxcorr = result4.getDouble("Average_Xcorr");
+								double LCvectorfrequency = LCoccurences * 1
+										/ maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1
+										/ maxLCXcorr;
+								CEValidation = "-";
+								ConfidenceScore = Math.sqrt(LCvectorfrequency
+										* LCvectorfrequency + LCvectoroccurence
+										* LCvectoroccurence + 0 * 0);
+								ConfidenceScore = ConfidenceScore / 2.23606798;
+								Averagemz = LCmz;
+								updateConflictHighConfidenceDB(MusterID,
+										MusterMass, MusterTime, OldSeq, LCSeq,
+										LCProtInfo, Averagemz, 0, 0,
+										LCoccurences, LCxcorr, ConfidenceScore,
+										CEValidation);
+							}
+
+						} else if (samesequence && rsSize3 == 1) {
+							// CE+ LC+ HC (one of LCMSMSCONFLICT was
+							// Pending)
+							System.out.println("CE+ LC+ HC");
+							// same sequence : CE+ LC+ HC
+							while (result4.next()) {
 								LCmz = result4.getDouble("Average_m_z_Da");
 								LCoccurences = result4.getInt("Occurrences");
 								LCxcorr = result4.getDouble("Average_Xcorr");
@@ -336,11 +1248,11 @@ public class Main_Identifypeptides_mixed {
 										Averagemz, CEoccurences, CExcorr,
 										LCoccurences, LCxcorr, ConfidenceScore,
 										CEValidation);
-								}
-							} else if (rsSize3 == 1) {
-								// CE+ LC- / CE- LC+ conflict (one of
-								// LCMSMSCONFLICT was Pending)
-								while (result4.next()) {
+							}
+						} else if (rsSize3 == 1) {
+							// CE+ LC- / CE- LC+ conflict (one of
+							// LCMSMSCONFLICT was Pending)
+							while (result4.next()) {
 								String LCSeq = result4.getString("Sequence");
 								String LCProtInfo = result4
 										.getString("Protein_Info");
@@ -352,11 +1264,13 @@ public class Main_Identifypeptides_mixed {
 								double LCvectoroccurence = LCxcorr * 1
 										/ maxLCXcorr;
 								// one only in CE
+								CEValidation = result
+										.getString("CE_Valid_Sequence");
 								ConfidenceScore = Math.sqrt(CEvectorfrequency
 										* CEvectorfrequency + CEvectoroccurence
 										* CEvectoroccurence + 0.5 * 0.5);
 								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + 0) / 2;
+								Averagemz = CEmz;
 								updateConflictHighConfidenceDB(MusterID,
 										MusterMass, MusterTime, OldSeq, NewSeq,
 										ProtInfo, Averagemz, CEoccurences,
@@ -368,474 +1282,7 @@ public class Main_Identifypeptides_mixed {
 										* LCvectorfrequency + LCvectoroccurence
 										* LCvectoroccurence + 0 * 0);
 								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (0 + LCmz) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, LCSeq,
-										LCProtInfo, Averagemz, 0, 0,
-										LCoccurences, LCxcorr, ConfidenceScore,
-										CEValidation);
-								}
-							}
-
-							result4.close();
-							s4.close();
-							connection4.close();
-						} catch (Throwable ignore) {
-							System.err.println("Mysql Statement Error: "
-									+ queryLCMSMSCONFLICTALSO);
-							ignore.printStackTrace();
-						}
-
-					} else {
-						while (result2.next()) {
-
-							// MusterID both CESELECTED and LCSELECTED
-							String LCSeq = result2.getString("Sequence");
-							String LCProtInfo = result2
-									.getString("Protein_Info");
-							LCmz = result2.getDouble("Average_m_z_Da");
-							LCoccurences = result2.getInt("Occurrences");
-							LCxcorr = result2.getDouble("Average_Xcorr");
-							
-							String LCseqArray[] = LCSeq.split("");
-							int ip2 = 0;
-							int im2 = 0;
-							int iq2 = 0;
-							int in2 = 0;
-							for (String string : LCseqArray) {
-								ip2 = string.equals("p") ? ip2 + 1 : ip2;
-								im2 = string.equals("p") ? im2 + 1 : im2;
-								iq2 = string.equals("p") ? iq2 + 1 : iq2;
-								in2 = string.equals("p") ? in2 + 1 : in2;
-							}
-							String LCseqDecomp = LCSeq.toUpperCase() + "," + Integer.toString(ip2) + "," + Integer.toString(im2) + "," + Integer.toString(iq2) + "," + Integer.toString(in2);
-
-							if (LCseqDecomp.equals(NewSeqDecomp)) {
-								System.out.println("CE+ LC+ HC");
-								// same sequence : CE+ LC+ HC
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + LCvectorfrequency
-										* LCvectorfrequency + LCvectoroccurence
-										* LCvectoroccurence + 1 * 1);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + LCmz) / 2;
-								updateHighConfidenceDB(MusterID, MusterMass,
-										MusterTime, OldSeq, NewSeq, ProtInfo,
-										Averagemz, CEoccurences, CExcorr,
-										LCoccurences, LCxcorr, ConfidenceScore,
-										CEValidation);
-							} else {
-								System.out.println(NewSeq + " " + LCSeq);
-								System.out
-										.println("CE+ LC- / CE- LC+ Conflict");
-								// conflict sequences (one only in CE and one
-								// only
-								// in LC): CE+ LC- / CE- LC+ Conflict
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
-								// one only in CE
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + 0.5 * 0.5);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + 0) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, NewSeq,
-										ProtInfo, Averagemz, CEoccurences,
-										CExcorr, 0, 0, ConfidenceScore,
-										CEValidation);
-								// one only in LC
-								CEValidation = "-";
-								ConfidenceScore = Math.sqrt(LCvectorfrequency
-										* LCvectorfrequency + LCvectoroccurence
-										* LCvectoroccurence + 0 * 0);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (0 + LCmz) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, LCSeq,
-										LCProtInfo, Averagemz, 0, 0,
-										LCoccurences, LCxcorr, ConfidenceScore,
-										CEValidation);
-							}
-						}
-					}
-					result2.close();
-					s2.close();
-					connection2.close();
-				} catch (Throwable ignore) {
-					System.err.println("Mysql Statement Error: "
-							+ queryCEMSMSSELECTED);
-					ignore.printStackTrace();
-				}
-			}
-			result.close();
-			s.close();
-			connection.close();
-		} catch (Throwable ignore) {
-			System.err.println("Mysql Statement Error: " + queryCEMSMSSELECTED);
-			ignore.printStackTrace();
-		}
-	}
-
-	private void forEachLCSelected(String queryLCMSMSSELECTED, int maxCEOcc,
-			double maxCEXcorr, int maxLCOcc, double maxLCXcorr)
-			throws SQLException {
-		Connection connection = getConn();
-		Statement s = connection.createStatement();
-		try {
-			ResultSet result = s.executeQuery(queryLCMSMSSELECTED);
-			while (result.next()) {
-
-				String MusterID = "";
-				double MusterMass = 0;
-				double MusterTime = 0;
-				String OldSeq = "";
-				String NewSeq = "";
-				String ProtInfo = "";
-				int CEoccurences = 0;
-				double CExcorr = 0;
-				int LCoccurences = 0;
-				double LCxcorr = 0;
-				double ConfidenceScore = 0;
-				double CEmz = 0;
-				double LCmz = 0;
-				double Averagemz = 0;
-
-				MusterID = result.getString("Muster_ID");
-				OldSeq = result.getString("Muster_Old_Sequence");
-				MusterTime = result.getDouble("Muster_CE_t");
-				MusterMass = result.getDouble("Muster_Exp_Mass");
-
-				NewSeq = result.getString("Sequence");
-				
-				String NewSeqArray[] = NewSeq.split("");
-				int ip = 0;
-				int im = 0;
-				int iq = 0;
-				int in = 0;
-				for (String string : NewSeqArray) {
-					ip = string.equals("p") ? ip + 1 : ip;
-					im = string.equals("p") ? im + 1 : im;
-					iq = string.equals("p") ? iq + 1 : iq;
-					in = string.equals("p") ? in + 1 : in;
-				}
-				String NewSeqDecomp = NewSeq.toUpperCase() + "," + Integer.toString(ip) + "," + Integer.toString(im) + "," + Integer.toString(iq) + "," + Integer.toString(in);
-				
-				ProtInfo = result.getString("Protein_Info");
-				LCmz = result.getDouble("Average_m_z_Da");
-				LCoccurences = result.getInt("Occurrences");
-				LCxcorr = result.getDouble("Average_Xcorr");
-				double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
-				double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
-
-				String CEValidation = "-";
-
-				// Check CEMSMSCONFLICT
-				boolean samesequence = false;
-				String queryCEMSMSCONFLICTALSO = "SELECT * FROM CEMSMSCONFLICT WHERE Muster_ID ='"
-						+ MusterID + "'";
-				int rsSize3 = 0;
-				Connection connection3 = getConn();
-				Statement s3 = connection3.createStatement();
-				try {
-					ResultSet result3 = s3
-							.executeQuery(queryCEMSMSCONFLICTALSO);
-					rsSize3 = getResultSetSize(result3);
-
-					if (rsSize3 == 0) {
-						System.out.println("CE- LC+ HC");
-						// MusterID only in LCSELECTED : CE- LC+ HC
-						ConfidenceScore = Math.sqrt(LCvectorfrequency
-								* LCvectorfrequency + LCvectoroccurence
-								* LCvectoroccurence + 0 * 0);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (0 + LCmz) / 2;
-						updateHighConfidenceDB(MusterID, MusterMass,
-								MusterTime, OldSeq, NewSeq, ProtInfo,
-								Averagemz, 0, 0, LCoccurences, LCxcorr,
-								ConfidenceScore, CEValidation);
-					} else {
-						// MusterID both LCSELECTED and CECONFLICT;
-						// check if contains same sequence
-						samesequence = isSameSequence(NewSeqDecomp, result3);
-					}
-					result3.close();
-					s3.close();
-					connection3.close();
-				} catch (Throwable ignore) {
-					System.err.println("Mysql Statement Error: "
-							+ queryCEMSMSCONFLICTALSO);
-					ignore.printStackTrace();
-				}
-				Connection connection4 = getConn();
-				Statement s4 = connection4.createStatement();
-				try {
-					ResultSet result4 = s4
-							.executeQuery(queryCEMSMSCONFLICTALSO);
-
-					if (samesequence && rsSize3 != 0) {
-						System.out.println("CE+ LC+ / many CE+ LC- conflict");
-						// CE+ LC+ / many CE+ LC- conflict
-						while (result4.next()) {
-							String CESeq = result4.getString("Sequence");
-							String CEProtInfo = result4
-									.getString("Protein_Info");
-							CEmz = result4.getDouble("Average_m_z_Da");
-							CEoccurences = result4.getInt("Occurrences");
-							CExcorr = result4.getDouble("Average_Xcorr");
-							CEValidation = result4
-									.getString("CE_Valid_Sequence");
-							double CEvectorfrequency = CEoccurences * 1
-									/ maxCEOcc;
-							double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
-							
-							String CEseqArray[] =CESeq.split("");
-							int ip2 = 0;
-							int im2 = 0;
-							int iq2 = 0;
-							int in2 = 0;
-							for (String string : CEseqArray) {
-								ip2 = string.equals("p") ? ip2 + 1 : ip2;
-								im2 = string.equals("p") ? im2 + 1 : im2;
-								iq2 = string.equals("p") ? iq2 + 1 : iq2;
-								in2 = string.equals("p") ? in2 + 1 : in2;
-							}
-							String CEseqDecomp = CESeq.toUpperCase() + "," + Integer.toString(ip2) + "," + Integer.toString(im2) + "," + Integer.toString(iq2) + "," + Integer.toString(in2);
-							
-							
-							if (CEseqDecomp.equals(NewSeqDecomp)) {
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + LCvectorfrequency
-										* LCvectorfrequency + LCvectoroccurence
-										* LCvectoroccurence + 1 * 1);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + LCmz) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, NewSeq,
-										ProtInfo, Averagemz, CEoccurences,
-										CExcorr, LCoccurences, LCxcorr,
-										ConfidenceScore, CEValidation);
-							} else {
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + 0.5 * 0.5);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + 0) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, CESeq,
-										CEProtInfo, Averagemz, CEoccurences,
-										CExcorr, 0, 0, ConfidenceScore,
-										CEValidation);
-							}
-
-						}
-
-					} else if (rsSize3 != 0) {
-						System.out.println("CE- LC+ / many CE+ LC- conflict");
-						// CE- LC+ / many CE+ LC- conflict
-						ConfidenceScore = Math.sqrt(LCvectorfrequency
-								* LCvectorfrequency + LCvectoroccurence
-								* LCvectoroccurence + 0 * 0);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (0 + LCmz) / 2;
-						updateConflictHighConfidenceDB(MusterID, MusterMass,
-								MusterTime, OldSeq, NewSeq, ProtInfo,
-								Averagemz, 0, 0, LCoccurences, LCxcorr,
-								ConfidenceScore, CEValidation);
-						while (result4.next()) {
-							String CESeq = result4.getString("Sequence");
-							String CEProtInfo = result4
-									.getString("Protein_Info");
-							CEmz = result4.getDouble("Average_m_z_Da");
-							CEoccurences = result4.getInt("Occurrences");
-							CExcorr = result4.getDouble("Average_Xcorr");
-							CEValidation = result4
-									.getString("CE_Valid_Sequence");
-							double CEvectorfrequency = CEoccurences * 1
-									/ maxCEOcc;
-							double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
-							ConfidenceScore = Math.sqrt(CEvectorfrequency
-									* CEvectorfrequency + CEvectoroccurence
-									* CEvectoroccurence + 0.5 * 0.5);
-							ConfidenceScore = ConfidenceScore / 2.23606798;
-							Averagemz = (CEmz + 0) / 2;
-							updateConflictHighConfidenceDB(MusterID,
-									MusterMass, MusterTime, OldSeq, CESeq,
-									CEProtInfo, Averagemz, CEoccurences,
-									CExcorr, 0, 0, ConfidenceScore,
-									CEValidation);
-						}
-					}
-					result4.close();
-					s4.close();
-					connection4.close();
-				} catch (Throwable ignore) {
-					System.err.println("Mysql Statement Error: "
-							+ queryCEMSMSCONFLICTALSO);
-					ignore.printStackTrace();
-				}
-
-			}
-			result.close();
-			s.close();
-			connection.close();
-		} catch (Throwable ignore) {
-			System.err.println("Mysql Statement Error: " + queryLCMSMSSELECTED);
-			ignore.printStackTrace();
-		}
-	}
-
-	private void forEachCEConflict(String queryCEConflict, int maxCEOcc,
-			double maxCEXcorr, int maxLCOcc, double maxLCXcorr)
-			throws SQLException {
-
-		Connection connection = getConn();
-		Statement s = connection.createStatement();
-		try {
-			ResultSet result = s.executeQuery(queryCEConflict);
-			while (result.next()) {
-
-				String MusterID = "";
-				double MusterMass = 0;
-				double MusterTime = 0;
-				String OldSeq = "";
-				String NewSeq = "";
-				String ProtInfo = "";
-				int CEoccurences = 0;
-				double CExcorr = 0;
-				int LCoccurences = 0;
-				double LCxcorr = 0;
-				double ConfidenceScore = 0;
-				double CEmz = 0;
-				double LCmz = 0;
-				double Averagemz = 0;
-				String CEValidation = "-";
-
-				MusterID = result.getString("Muster_ID");
-				OldSeq = result.getString("Muster_Old_Sequence");
-				MusterTime = result.getDouble("Muster_CE_t");
-				MusterMass = result.getDouble("Muster_Exp_Mass");
-				CEValidation = result.getString("CE_Valid_Sequence");
-
-				NewSeq = result.getString("Sequence");
-				
-				String NewSeqArray[] = NewSeq.split("");
-				int ip = 0;
-				int im = 0;
-				int iq = 0;
-				int in = 0;
-				for (String string : NewSeqArray) {
-					ip = string.equals("p") ? ip + 1 : ip;
-					im = string.equals("p") ? im + 1 : im;
-					iq = string.equals("p") ? iq + 1 : iq;
-					in = string.equals("p") ? in + 1 : in;
-				}
-				String NewSeqDecomp = NewSeq.toUpperCase() + "," + Integer.toString(ip) + "," + Integer.toString(im) + "," + Integer.toString(iq) + "," + Integer.toString(in);
-				
-				ProtInfo = result.getString("Protein_Info");
-				CEmz = result.getDouble("Average_m_z_Da");
-				CEoccurences = result.getInt("Occurrences");
-				CExcorr = result.getDouble("Average_Xcorr");
-				double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
-				double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
-
-				// Check LCMSMSCONFLICT
-				boolean samesequence = false;
-				String queryLCMSMSCONFLICTALSO = "SELECT * FROM LCMSMSCONFLICT WHERE Muster_ID ='"
-						+ MusterID + "' AND CONFIDENCE NOT LIKE 'Pending'";
-				int rsSize3 = 0;
-				Connection connection3 = getConn();
-				Statement s3 = connection3.createStatement();
-				try {
-					ResultSet result3 = s3
-							.executeQuery(queryLCMSMSCONFLICTALSO);
-					rsSize3 = getResultSetSize(result3);
-
-					if (rsSize3 == 0) {
-						System.out.println("CE+ LC- HC");
-						// MusterID only in CECONFLICT : many CE+ LC- Conflict
-						ConfidenceScore = Math.sqrt(CEvectorfrequency
-								* CEvectorfrequency + CEvectoroccurence
-								* CEvectoroccurence + 0.5 * 0.5);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (CEmz + LCmz) / 2;
-						updateConflictHighConfidenceDB(MusterID, MusterMass,
-								MusterTime, OldSeq, NewSeq, ProtInfo,
-								Averagemz, CEoccurences, CExcorr, 0, 0,
-								ConfidenceScore, CEValidation);
-					} else {
-						// MusterID both CECONFLICT and LCCONFLICT;
-						// check if contains same sequence
-						samesequence = isSameSequence(NewSeqDecomp, result3);
-					}
-					result3.close();
-					s3.close();
-					connection3.close();
-				} catch (Throwable ignore) {
-					System.err.println("Mysql Statement Error: "
-							+ queryLCMSMSCONFLICTALSO);
-					ignore.printStackTrace();
-				}
-				Connection connection4 = getConn();
-				Statement s4 = connection4.createStatement();
-				try {
-					ResultSet result4 = s4
-							.executeQuery(queryLCMSMSCONFLICTALSO);
-
-					if (samesequence && rsSize3 > 1) {
-						System.out.println("CE+ LC+ / many CE- LC+ conflict no pending");
-						// many CE+ LC+ / many CE- LC+ conflict no Pending
-						while (result4.next()) {
-							String LCSeq = result4.getString("Sequence");
-							String LCProtInfo = result4
-									.getString("Protein_Info");
-							LCmz = result4.getDouble("Average_m_z_Da");
-							LCoccurences = result4.getInt("Occurrences");
-							LCxcorr = result4.getDouble("Average_Xcorr");
-							double LCvectorfrequency = LCoccurences * 1
-									/ maxLCOcc;
-							double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
-							
-							String LCseqArray[] = LCSeq.split("");
-							int ip2 = 0;
-							int im2 = 0;
-							int iq2 = 0;
-							int in2 = 0;
-							for (String string : LCseqArray) {
-								ip2 = string.equals("p") ? ip2 + 1 : ip2;
-								im2 = string.equals("p") ? im2 + 1 : im2;
-								iq2 = string.equals("p") ? iq2 + 1 : iq2;
-								in2 = string.equals("p") ? in2 + 1 : in2;
-							}
-							String LCseqDecomp = LCSeq.toUpperCase() + "," + Integer.toString(ip2) + "," + Integer.toString(im2) + "," + Integer.toString(iq2) + "," + Integer.toString(in2);
-							if (LCseqDecomp.equals(NewSeqDecomp)) {
-								CEValidation = "-";
-								ConfidenceScore = Math.sqrt(CEvectorfrequency
-										* CEvectorfrequency + CEvectoroccurence
-										* CEvectoroccurence + LCvectorfrequency
-										* LCvectorfrequency + LCvectoroccurence
-										* LCvectoroccurence + 1 * 1);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (CEmz + LCmz) / 2;
-								updateConflictHighConfidenceDB(MusterID,
-										MusterMass, MusterTime, OldSeq, NewSeq,
-										ProtInfo, Averagemz, CEoccurences,
-										CExcorr, LCoccurences, LCxcorr,
-										ConfidenceScore, CEValidation);
-							} else {
-								ConfidenceScore = Math.sqrt(LCvectorfrequency
-										* LCvectorfrequency + LCvectoroccurence
-										* LCvectoroccurence + 0 * 0);
-								ConfidenceScore = ConfidenceScore / 2.23606798;
-								Averagemz = (0 + LCmz) / 2;
+								Averagemz = LCmz;
 								updateConflictHighConfidenceDB(MusterID,
 										MusterMass, MusterTime, OldSeq, LCSeq,
 										LCProtInfo, Averagemz, 0, 0,
@@ -845,116 +1292,16 @@ public class Main_Identifypeptides_mixed {
 
 						}
 
-					} else if (rsSize3 >1) {
-						System.out.println("CE+ LC- / many CE- LC+ conflict no pending");
-						// many CE+ LC- / many CE- LC+ conflict no pending
-						ConfidenceScore = Math.sqrt(CEvectorfrequency
-								* CEvectorfrequency + CEvectoroccurence
-								* CEvectoroccurence + 0.5 * 0.5);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (CEmz + 0) / 2;
-						updateConflictHighConfidenceDB(MusterID, MusterMass,
-								MusterTime, OldSeq, NewSeq, ProtInfo,
-								Averagemz, CEoccurences, CExcorr, 0, 0,
-								ConfidenceScore, CEValidation);
-						while (result4.next()) {
-							String LCSeq = result4.getString("Sequence");
-							String LCProtInfo = result4
-									.getString("Protein_Info");
-							LCmz = result4.getDouble("Average_m_z_Da");
-							LCoccurences = result4.getInt("Occurrences");
-							LCxcorr = result4.getDouble("Average_Xcorr");
-							double LCvectorfrequency = LCoccurences * 1
-									/ maxLCOcc;
-							double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
-							CEValidation = "-";
-							ConfidenceScore = Math.sqrt(LCvectorfrequency
-									* LCvectorfrequency + LCvectoroccurence
-									* LCvectoroccurence + 0 * 0);
-							ConfidenceScore = ConfidenceScore / 2.23606798;
-							Averagemz = (0 + LCmz) / 2;
-							updateConflictHighConfidenceDB(MusterID,
-									MusterMass, MusterTime, OldSeq, LCSeq,
-									LCProtInfo, Averagemz, 0, 0, LCoccurences,
-									LCxcorr, ConfidenceScore, CEValidation);
-						}
-
-					} else if (samesequence && rsSize3 == 1) {
-						// CE+ LC+ HC (one of LCMSMSCONFLICT was
-						// Pending)
-						System.out.println("CE+ LC+ HC");
-						// same sequence : CE+ LC+ HC
-						while (result4.next()) {
-						LCmz = result4.getDouble("Average_m_z_Da");
-						LCoccurences = result4.getInt("Occurrences");
-						LCxcorr = result4.getDouble("Average_Xcorr");
-						double LCvectorfrequency = LCoccurences * 1
-								/ maxLCOcc;
-						double LCvectoroccurence = LCxcorr * 1
-								/ maxLCXcorr;
-						ConfidenceScore = Math.sqrt(CEvectorfrequency
-								* CEvectorfrequency + CEvectoroccurence
-								* CEvectoroccurence + LCvectorfrequency
-								* LCvectorfrequency + LCvectoroccurence
-								* LCvectoroccurence + 1 * 1);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (CEmz + LCmz) / 2;
-						updateHighConfidenceDB(MusterID, MusterMass,
-								MusterTime, OldSeq, NewSeq, ProtInfo,
-								Averagemz, CEoccurences, CExcorr,
-								LCoccurences, LCxcorr, ConfidenceScore,
-								CEValidation);
-						}
-					} else if (rsSize3 == 1) {
-						// CE+ LC- / CE- LC+ conflict (one of
-						// LCMSMSCONFLICT was Pending)
-						while (result4.next()) {
-						String LCSeq = result4.getString("Sequence");
-						String LCProtInfo = result4
-								.getString("Protein_Info");
-						LCmz = result4.getDouble("Average_m_z_Da");
-						LCoccurences = result4.getInt("Occurrences");
-						LCxcorr = result4.getDouble("Average_Xcorr");
-						double LCvectorfrequency = LCoccurences * 1
-								/ maxLCOcc;
-						double LCvectoroccurence = LCxcorr * 1
-								/ maxLCXcorr;
-						// one only in CE
-						ConfidenceScore = Math.sqrt(CEvectorfrequency
-								* CEvectorfrequency + CEvectoroccurence
-								* CEvectoroccurence + 0.5 * 0.5);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (CEmz + 0) / 2;
-						updateConflictHighConfidenceDB(MusterID,
-								MusterMass, MusterTime, OldSeq, NewSeq,
-								ProtInfo, Averagemz, CEoccurences,
-								CExcorr, 0, 0, ConfidenceScore,
-								CEValidation);
-						// one only in LC
-						CEValidation = "-";
-						ConfidenceScore = Math.sqrt(LCvectorfrequency
-								* LCvectorfrequency + LCvectoroccurence
-								* LCvectoroccurence + 0 * 0);
-						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (0 + LCmz) / 2;
-						updateConflictHighConfidenceDB(MusterID,
-								MusterMass, MusterTime, OldSeq, LCSeq,
-								LCProtInfo, Averagemz, 0, 0,
-								LCoccurences, LCxcorr, ConfidenceScore,
-								CEValidation);
-						}
-
+						result4.close();
+						s4.close();
+						connection4.close();
+					} catch (Throwable ignore) {
+						System.err.println("Mysql Statement Error: "
+								+ queryLCMSMSCONFLICTALSO);
+						ignore.printStackTrace();
 					}
 
-					result4.close();
-					s4.close();
-					connection4.close();
-				} catch (Throwable ignore) {
-					System.err.println("Mysql Statement Error: "
-							+ queryLCMSMSCONFLICTALSO);
-					ignore.printStackTrace();
 				}
-
 			}
 			result.close();
 			s.close();
@@ -963,7 +1310,11 @@ public class Main_Identifypeptides_mixed {
 			System.err.println("Mysql Statement Error: " + queryCEConflict);
 			ignore.printStackTrace();
 		}
-
+		
+		
+	
+		
+		return output;
 	}
 
 	private void forEachLCConflict(String queryLCMSMSCONFLICT, int maxCEOcc,
@@ -1023,12 +1374,12 @@ public class Main_Identifypeptides_mixed {
 								* LCvectorfrequency + LCvectoroccurence
 								* LCvectoroccurence + 0 * 0);
 						ConfidenceScore = ConfidenceScore / 2.23606798;
-						Averagemz = (0 + LCmz) / 2;
+						Averagemz = LCmz;
 						updateConflictHighConfidenceDB(MusterID, MusterMass,
 								MusterTime, OldSeq, NewSeq, ProtInfo,
 								Averagemz, 0, 0, LCoccurences, LCxcorr,
 								ConfidenceScore, CEValidation);
-					} 
+					}
 					result3.close();
 					s3.close();
 					connection3.close();
@@ -1037,7 +1388,6 @@ public class Main_Identifypeptides_mixed {
 							+ queryCEMSMSCONFLICTALSO);
 					ignore.printStackTrace();
 				}
-				
 
 			}
 			result.close();
@@ -1065,9 +1415,10 @@ public class Main_Identifypeptides_mixed {
 				iq = string.equals("p") ? iq + 1 : iq;
 				in = string.equals("p") ? in + 1 : in;
 			}
-			String LCseqDecomp = LCseq.toUpperCase() + "," + Integer.toString(ip) + "," + Integer.toString(im) + "," + Integer.toString(iq) + "," + Integer.toString(in);
-			
-			
+			String LCseqDecomp = LCseq.toUpperCase() + ","
+					+ Integer.toString(ip) + "," + Integer.toString(im) + ","
+					+ Integer.toString(iq) + "," + Integer.toString(in);
+
 			if (LCseqDecomp.equals(NewSeqDecomp)) {
 				return true;
 			}
