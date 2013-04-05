@@ -67,6 +67,7 @@ public class Main_Identifypeptides_mixed {
 		double maxCEXcorr = CEXcorr.get(size2 - 1);
 		int maxLCOcc = LCOcc.get(size3 - 1);
 		double maxLCXcorr = LCXcorr.get(size4 - 1);
+		
 
 		String queryMuster = "SELECT * FROM musterlist40";
 		Connection connection = getConn();
@@ -161,7 +162,7 @@ public class Main_Identifypeptides_mixed {
 					CEmz = result5.getDouble("Average_m_z_Da");
 					CEoccurences = result5.getInt("Occurrences");
 					CExcorr = result5.getDouble("Average_Xcorr");
-					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectorfrequency = (double) CEoccurences * 1 / (double) maxCEOcc;
 					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
 					
 					String queryCONFLICTHIGHCONF = "SELECT * FROM conflict_highconfidencepeptide WHERE Muster_ID ='"
@@ -247,7 +248,7 @@ public class Main_Identifypeptides_mixed {
 					LCmz = result7.getDouble("Average_m_z_Da");
 					LCoccurences = result7.getInt("Occurrences");
 					LCxcorr = result7.getDouble("Average_Xcorr");
-					double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
+					double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
 					double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 					
 					String queryCONFLICTHIGHCONF = "SELECT * FROM conflict_highconfidencepeptide WHERE Muster_ID ='"
@@ -353,7 +354,7 @@ public class Main_Identifypeptides_mixed {
 					CEmz = result.getDouble("Average_m_z_Da");
 					CEoccurences = result.getInt("Occurrences");
 					CExcorr = result.getDouble("Average_Xcorr");
-					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectorfrequency = (double) CEoccurences * 1 / (double) maxCEOcc;
 					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
 
 					// Check LCMSMSSELECTED
@@ -391,7 +392,7 @@ public class Main_Identifypeptides_mixed {
 													* CEvectoroccurence + 0.5
 													* 0.5);
 									ConfidenceScore = ConfidenceScore / 2.23606798;
-									Averagemz = (CEmz + LCmz) / 2;
+									Averagemz = CEmz;
 									updateHighConfidenceDB(MusterID,
 											MusterMass, MusterTime, OldSeq,
 											NewSeq, ProtInfo, Averagemz,
@@ -432,10 +433,8 @@ public class Main_Identifypeptides_mixed {
 												.getInt("Occurrences");
 										LCxcorr = result4
 												.getDouble("Average_Xcorr");
-										double LCvectorfrequency = LCoccurences
-												* 1 / maxLCOcc;
-										double LCvectoroccurence = LCxcorr * 1
-												/ maxLCXcorr;
+										double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 
 										String LCseqArray[] = LCSeq.split("");
 										int ip2 = 0;
@@ -538,10 +537,8 @@ public class Main_Identifypeptides_mixed {
 												.getInt("Occurrences");
 										LCxcorr = result4
 												.getDouble("Average_Xcorr");
-										double LCvectorfrequency = LCoccurences
-												* 1 / maxLCOcc;
-										double LCvectoroccurence = LCxcorr * 1
-												/ maxLCXcorr;
+										double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 										ConfidenceScore = Math
 												.sqrt(LCvectorfrequency
 														* LCvectorfrequency
@@ -570,10 +567,8 @@ public class Main_Identifypeptides_mixed {
 												.getInt("Occurrences");
 										LCxcorr = result4
 												.getDouble("Average_Xcorr");
-										double LCvectorfrequency = LCoccurences
-												* 1 / maxLCOcc;
-										double LCvectoroccurence = LCxcorr * 1
-												/ maxLCXcorr;
+										double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 										ConfidenceScore = Math
 												.sqrt(CEvectorfrequency
 														* CEvectorfrequency
@@ -607,10 +602,8 @@ public class Main_Identifypeptides_mixed {
 												.getInt("Occurrences");
 										LCxcorr = result4
 												.getDouble("Average_Xcorr");
-										double LCvectorfrequency = LCoccurences
-												* 1 / maxLCOcc;
-										double LCvectoroccurence = LCxcorr * 1
-												/ maxLCXcorr;
+										double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+										double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 										// one only in CE
 										CEValidation = result
 												.getString("CE_Valid_Sequence");
@@ -688,10 +681,9 @@ public class Main_Identifypeptides_mixed {
 									// same sequence : CE+ LC+ HC
 									CEValidation = result
 											.getString("CE_Valid_Sequence");
-									double LCvectorfrequency = LCoccurences * 1
-											/ maxLCOcc;
-									double LCvectoroccurence = LCxcorr * 1
-											/ maxLCXcorr;
+									double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+									double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
+											
 									ConfidenceScore = Math
 											.sqrt(CEvectorfrequency
 													* CEvectorfrequency
@@ -717,10 +709,8 @@ public class Main_Identifypeptides_mixed {
 									// one
 									// only
 									// in LC): CE+ LC- / CE- LC+ Conflict
-									double LCvectorfrequency = LCoccurences * 1
-											/ maxLCOcc;
-									double LCvectoroccurence = LCxcorr * 1
-											/ maxLCXcorr;
+									double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+									double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 									// one only in CE
 									CEValidation = result
 											.getString("CE_Valid_Sequence");
@@ -830,7 +820,7 @@ public class Main_Identifypeptides_mixed {
 					LCmz = result.getDouble("Average_m_z_Da");
 					LCoccurences = result.getInt("Occurrences");
 					LCxcorr = result.getDouble("Average_Xcorr");
-					double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
+					double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
 					double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 
 					String CEValidation = "-";
@@ -891,8 +881,8 @@ public class Main_Identifypeptides_mixed {
 								CExcorr = result4.getDouble("Average_Xcorr");
 								CEValidation = result4
 										.getString("CE_Valid_Sequence");
-								double CEvectorfrequency = CEoccurences * 1
-										/ maxCEOcc;
+								double CEvectorfrequency = (double) CEoccurences * 1
+										/ (double) maxCEOcc;
 								double CEvectoroccurence = CExcorr * 1
 										/ maxCEXcorr;
 
@@ -971,8 +961,8 @@ public class Main_Identifypeptides_mixed {
 								CExcorr = result4.getDouble("Average_Xcorr");
 								CEValidation = result4
 										.getString("CE_Valid_Sequence");
-								double CEvectorfrequency = CEoccurences * 1
-										/ maxCEOcc;
+								double CEvectorfrequency = (double) CEoccurences * 1
+										/ (double) maxCEOcc;
 								double CEvectoroccurence = CExcorr * 1
 										/ maxCEXcorr;
 								ConfidenceScore = Math.sqrt(CEvectorfrequency
@@ -1065,7 +1055,7 @@ public class Main_Identifypeptides_mixed {
 					CEmz = result.getDouble("Average_m_z_Da");
 					CEoccurences = result.getInt("Occurrences");
 					CExcorr = result.getDouble("Average_Xcorr");
-					double CEvectorfrequency = CEoccurences * 1 / maxCEOcc;
+					double CEvectorfrequency = (double) CEoccurences * 1 / (double) maxCEOcc;
 					double CEvectoroccurence = CExcorr * 1 / maxCEXcorr;
 
 					// Check LCMSMSCONFLICT
@@ -1088,7 +1078,7 @@ public class Main_Identifypeptides_mixed {
 									* CEvectorfrequency + CEvectoroccurence
 									* CEvectoroccurence + 0.5 * 0.5);
 							ConfidenceScore = ConfidenceScore / 2.23606798;
-							Averagemz = (CEmz + LCmz) / 2;
+							Averagemz = CEmz;
 							updateConflictHighConfidenceDB(MusterID,
 									MusterMass, MusterTime, OldSeq, NewSeq,
 									ProtInfo, Averagemz, CEoccurences, CExcorr,
@@ -1126,10 +1116,8 @@ public class Main_Identifypeptides_mixed {
 								LCmz = result4.getDouble("Average_m_z_Da");
 								LCoccurences = result4.getInt("Occurrences");
 								LCxcorr = result4.getDouble("Average_Xcorr");
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
+								double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 
 								String LCseqArray[] = LCSeq.split("");
 								int ip2 = 0;
@@ -1206,10 +1194,8 @@ public class Main_Identifypeptides_mixed {
 								LCmz = result4.getDouble("Average_m_z_Da");
 								LCoccurences = result4.getInt("Occurrences");
 								LCxcorr = result4.getDouble("Average_Xcorr");
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
+								double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 								CEValidation = "-";
 								ConfidenceScore = Math.sqrt(LCvectorfrequency
 										* LCvectorfrequency + LCvectoroccurence
@@ -1232,10 +1218,8 @@ public class Main_Identifypeptides_mixed {
 								LCmz = result4.getDouble("Average_m_z_Da");
 								LCoccurences = result4.getInt("Occurrences");
 								LCxcorr = result4.getDouble("Average_Xcorr");
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
+								double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 								ConfidenceScore = Math.sqrt(CEvectorfrequency
 										* CEvectorfrequency + CEvectoroccurence
 										* CEvectoroccurence + LCvectorfrequency
@@ -1259,10 +1243,8 @@ public class Main_Identifypeptides_mixed {
 								LCmz = result4.getDouble("Average_m_z_Da");
 								LCoccurences = result4.getInt("Occurrences");
 								LCxcorr = result4.getDouble("Average_Xcorr");
-								double LCvectorfrequency = LCoccurences * 1
-										/ maxLCOcc;
-								double LCvectoroccurence = LCxcorr * 1
-										/ maxLCXcorr;
+								double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
+								double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
 								// one only in CE
 								CEValidation = result
 										.getString("CE_Valid_Sequence");
@@ -1320,6 +1302,7 @@ public class Main_Identifypeptides_mixed {
 	private void forEachLCConflict(String queryLCMSMSCONFLICT, int maxCEOcc,
 			double maxCEXcorr, int maxLCOcc, double maxLCXcorr)
 			throws SQLException {
+		
 		Connection connection = getConn();
 		Statement s = connection.createStatement();
 		try {
@@ -1351,9 +1334,9 @@ public class Main_Identifypeptides_mixed {
 				LCmz = result.getDouble("Average_m_z_Da");
 				LCoccurences = result.getInt("Occurrences");
 				LCxcorr = result.getDouble("Average_Xcorr");
-				double LCvectorfrequency = LCoccurences * 1 / maxLCOcc;
+				double LCvectorfrequency = (double) LCoccurences * 1 / (double) maxLCOcc;
 				double LCvectoroccurence = LCxcorr * 1 / maxLCXcorr;
-
+		
 				String CEValidation = "-";
 
 				// Check CEMSMSCONFLICT
@@ -1368,12 +1351,13 @@ public class Main_Identifypeptides_mixed {
 					rsSize3 = getResultSetSize(result3);
 
 					if (rsSize3 == 0) {
-						System.out.println("CE- LC+ HC");
+						System.out.println("CE- LC+ conflict");
 						// MusterID only in LCCONFLICT : CE- LC+ conflict
 						ConfidenceScore = Math.sqrt(LCvectorfrequency
 								* LCvectorfrequency + LCvectoroccurence
 								* LCvectoroccurence + 0 * 0);
 						ConfidenceScore = ConfidenceScore / 2.23606798;
+						System.out.println(ConfidenceScore);
 						Averagemz = LCmz;
 						updateConflictHighConfidenceDB(MusterID, MusterMass,
 								MusterTime, OldSeq, NewSeq, ProtInfo,

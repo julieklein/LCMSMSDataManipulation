@@ -21,17 +21,17 @@ import applyconfidence.Output;
 public class Main_fromOmsatoDB {
 	public Main_fromOmsatoDB() throws IOException, SQLException {
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/extrapolated");
+				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/extrapolated");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();
 			String woextrapol = filepath
 					.replace(
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/extrapolated/",
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait2/");
-			woextrapol = woextrapol.replace("_ConfOMSA-20130314-1042.txt",
-					"_Conf.txt");
-			String withextrapol = woextrapol.replace("_Conf.txt",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/extrapolated/",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/");
+			woextrapol = woextrapol.replace("_ConfOMSA-20130319-1121.txt",
+					"_Confidence.txt");
+			String withextrapol = woextrapol.replace("_Confidence.txt",
 					"_Extrapo_Conf.txt");
 
 			System.out.println(filepath);

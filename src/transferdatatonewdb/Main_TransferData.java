@@ -38,40 +38,42 @@ public class Main_TransferData {
 			
 			Connection connection = getConn();
 			Statement s = connection.createStatement();
-//			queryProtease = "SELECT * FROM LCMSMSCOMPLETEDATA LIMIT " + minLimit + ","+ 1000;
-			queryProtease = "SELECT * FROM musterlist40";
+//			queryProtease = "SELECT * FROM LCMSMSCOMPLETEDATA  where spectrum_File = '10302-GvHD-Auftrag-Urin-24459-2427-B.raw'";
+			queryProtease = "SELECT * FROM CEMSMSconflict";
 			ResultSet result = s.executeQuery(queryProtease);
 			rsSize = getResultSetSize(result);
 			System.out.println(queryProtease);
 			System.out.println(rsSize);
 
 			while (result.next()) {
-//				String insertpeptide = "INSERT INTO CEMSMSSELECTED VALUES('"
-//						+ result.getString("Muster_ID") + "', "
-//						+ result.getDouble("Muster_Exp_Mass") + ", "
-//						+ result.getDouble("Muster_CE_t") + ", '"
-//						+ result.getString("Muster_Old_Sequence") + "', '"
-//						+ result.getString("Sequence") + "', '"
-//						+ result.getString("Protein_Info") + "', "
-//						+ result.getDouble("TheoriticalMass_Da") + ", "
-//						+ result.getDouble("Average_ExperimentalMass_H_Da") + ", "
-//						+ result.getDouble("Average_m_z_Da") + ", "
-//						+ result.getDouble("Average_Xcorr") + ", "
-//						+ result.getInt("Nb_Basic_Aa") + ", "
-//						+ result.getDouble("Average_Calibrated_CE_t_min") + ", "
-//						+ result.getInt("Occurences") + ", '"
-//						+ result.getString("Confidence") + "')";
+				String insertpeptide = "INSERT INTO CEMSMSconflict VALUES('"
+						+ result.getString("Muster_ID") + "', "
+						+ result.getDouble("Muster_Exp_Mass") + ", "
+						+ result.getDouble("Muster_CE_t") + ", '"
+						+ result.getString("Muster_Old_Sequence") + "', '"
+						+ result.getString("Sequence") + "', '"
+						+ result.getString("Protein_Info") + "', "
+						+ result.getDouble("TheoriticalMass_Da") + ", "
+						+ result.getDouble("Average_ExperimentalMass_H_Da") + ", "
+						+ result.getDouble("Average_m_z_Da") + ", "
+						+ result.getDouble("Average_Xcorr") + ", "
+						+ result.getInt("Nb_Basic_Aa") + ", "
+						+ result.getDouble("Average_Calibrated_CE_t_min") + ", "
+						+ result.getInt("Occurrences") + ", '"
+						+ result.getString("Confidence") + "', '"
+						+ result.getString("CE_Valid_Sequence") + "', '"
+						+ result.getString("Status") + "')";
 				
-				String insertpeptide = "INSERT INTO musterlist40 VALUES("
-						+ result.getInt("idMuster") + ", "
-						+ result.getDouble("ExperimentalMass_Da") + ", "
-						+ result.getDouble("CE_t_min") + ", "
-						+ result.getDouble("Amplitude") + ", "
-						+ result.getInt("Frequency") + ", "
-						+ result.getDouble("Std_Dev_Mass") + ", "
-						+ result.getDouble("Std_Dev_CE_t") + ", '"
-						+ result.getString("Old_Sequence") + "', '"
-						+ result.getString("New_Sequence") + "')";
+//				String insertpeptide = "INSERT INTO musterlist40 VALUES("
+//						+ result.getInt("idMuster") + ", "
+//						+ result.getDouble("ExperimentalMass_Da") + ", "
+//						+ result.getDouble("CE_t_min") + ", "
+//						+ result.getDouble("Amplitude") + ", "
+//						+ result.getInt("Frequency") + ", "
+//						+ result.getDouble("Std_Dev_Mass") + ", "
+//						+ result.getDouble("Std_Dev_CE_t") + ", '"
+//						+ result.getString("Old_Sequence") + "', '"
+//						+ result.getString("New_Sequence") + "')";
 				
 //				String insertpeptide = "INSERT INTO LCMSMSCOMPLETEDATA VALUES("
 //						+ result.getDouble("ConfTotal") + ", "

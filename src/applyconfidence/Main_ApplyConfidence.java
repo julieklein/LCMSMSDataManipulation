@@ -87,7 +87,7 @@ public class Main_ApplyConfidence {
 		
 		// create File object
 		File stockDir = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence");
+				"//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata/textfiles/confidence");
 
 		try {
 			dirFlag = stockDir.mkdir();
@@ -101,7 +101,7 @@ public class Main_ApplyConfidence {
 			System.out.println("Directory was not created successfully");
 
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles");
+				"//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata/textfiles");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();
@@ -109,9 +109,9 @@ public class Main_ApplyConfidence {
 			inputfilename = inputfilename.replaceAll(".txt", "");
 			inputfilename = inputfilename
 					.replace(
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/",
+							"//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata/textfiles/",
 							"");
-			String outputfilename = "//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/"
+			String outputfilename = "//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata/textfiles/confidence/"
 					+ inputfilename + "_Confidence.txt";
 			if (!filepath.contains("DS_Store")
 					&& !filepath.contains("confidence")) {
@@ -125,7 +125,9 @@ public class Main_ApplyConfidence {
 				while ((line = bReader.readLine()) != null) {
 					System.out.println(i);
 					String splitarray[] = line.split("\t");
+					if (!line.isEmpty()) {
 					String multipleIDList = splitarray[2];
+					multipleIDList = multipleIDList.replaceAll("\"", "");
 
 					int rsSize = 0;
 					String queryProtease = "SELECT * FROM IDMAPPING WHERE MultipleIDs= '"
@@ -154,6 +156,7 @@ public class Main_ApplyConfidence {
 							String precursorIDList[] = splitarray[2].split(";");
 							Map<String, List<Set<String>>> processedLinesMultipleIDs = new HashMap<String, List<Set<String>>>();
 							for (String searchUni : precursorIDList) {
+								searchUni = searchUni.replaceAll("\"", "");
 								System.out.println(searchUni);
 								String substratename = "-";
 								String substratesymbol = "-";
@@ -378,7 +381,7 @@ public class Main_ApplyConfidence {
 						ignore.printStackTrace();
 					}
 					i++;
-
+				}
 				}
 
 				try {
@@ -388,87 +391,7 @@ public class Main_ApplyConfidence {
 					for (Output output : outputList) {
 						populateData(csvWriter, output);
 						
-//						String queryadddata = "INSERT INTO LCMSMSCOMPLETEDATA VALUES("
-//						+ output.Conf_Total
-//						+ ", "
-//						+ output.Conf_Cystein
-//						+ ", "
-//						+ output.Conf_Oxidation
-//						+ ", "
-//						+ output.Conf_DeltaMass
-//						+ ", "
-//						+ output.PD_Rank
-//						+ ", '"
-//						+ output.Pep_Sequence
-//						+ "', '"
-//						+ output.Precursor_ID
-//						+ "', '"
-//						+ output.Precursor_Symbol
-//						+ "', '"
-//						+ output.Precursor_Name
-//						+ "', '"
-//						+ output.Pep_Modifications
-//						+ "', "
-//						+ output.PD_XCorr
-//						+ ", "
-//						+ output.MS_MZ
-//						+ ", "
-//						+ output.MS_MH
-//						+ ", "
-//						+ output.MS_CalculatedMass
-//						+ ", "
-//						+ output.MS_DeltaM
-//						+ ", "
-//						+ output.Pep_NbBasicAa
-//						+ ", "
-//						+ output.MS_RT
-//						+ ", "
-//						+ output.MS_CalibratedRT
-//						+ ", "
-//						+ output.MS_FirstScan
-//						+ ", "
-//						+ output.MS_LastScan
-//						+ ", '"
-//						+ output.MS_MSOrder
-//						+ "', "
-//						+ output.MS_IonMatched
-//						+ ", "
-//						+ output.MS_IonTotal
-//						+ ", '"
-//						+ output.PD_SpectrumFile
-//						+ "', '"
-//						+ output.PD_Conf
-//						+ "', '"
-//						+ output.PD_NumberProt
-//						+ "', '"
-//						+ output.PD_NumberProtGroup
-//						+ "', '"
-//						+ output.MS_ActivationType
-//						+ "', '"
-//						+ output.PD_Proba
-//						+ "', '"
-//						+ output.PD_Score
-//						+ "', "
-//						+ output.MS_Area
-//						+ ", "
-//						+ output.MS_Intensity
-//						+ ", "
-//						+ output.MS_Charge
-//						+ ")";
-//						Connection connection2 = getConn();
-//						Statement s2 = connection2
-//								.createStatement();
-//						try {
-//							int result2 = s2
-//									.executeUpdate(queryadddata);
-//							s2.close();
-//							connection2.close();
-//						} catch (Throwable ignore) {
-//							System.err
-//									.println("Mysql Statement Error: "
-//											+ queryadddata);
-//							ignore.printStackTrace();
-//						}
+						
 					}
 
 				} catch (FileNotFoundException ex) {
@@ -483,7 +406,7 @@ public class Main_ApplyConfidence {
 
 	}
 
-	private void populateOutput(String[] splitarray, Output output) {
+	private void populateOutput(String[] splitarray, Output output) throws SQLException {
 		output.PD_Conf = splitarray[0];
 		output.Pep_Sequence = splitarray[1];
 		output.PD_NumberProt = splitarray[3];
@@ -511,18 +434,19 @@ public class Main_ApplyConfidence {
 		output.MS_DeltaM = Double.parseDouble(sdelta);
 		String sRT = splitarray[17].replaceAll(",", ".");
 		output.MS_RT = Double.parseDouble(sRT);
-		String sfirst = splitarray[18].replaceAll(",", ".");
+		String scalibrated = splitarray[18].replaceAll(",", ".");
+		output.MS_CalibratedRT = Double.parseDouble(scalibrated);
+		String sfirst = splitarray[19].replaceAll(",", ".");
 		output.MS_FirstScan = Double.parseDouble(sfirst);
-		String slast = splitarray[19].replaceAll(",", ".");
+		String slast = splitarray[20].replaceAll(",", ".");
 		output.MS_LastScan = Double.parseDouble(slast);
-		output.MS_MSOrder = splitarray[20];
-		String Ion = splitarray[21];
+		output.MS_MSOrder = splitarray[21];
+		String Ion = splitarray[22];
 		String splitIon[] = Ion.split("/");
 		output.MS_IonMatched = Integer.parseInt(splitIon[0]);
 		output.MS_IonTotal = Integer.parseInt(splitIon[1]);
-		output.PD_SpectrumFile = splitarray[22];
-//		String scalibrated = splitarray[23].replaceAll(",", ".");
-//		output.MS_CalibratedRT = Double.parseDouble(scalibrated);
+		output.PD_SpectrumFile = splitarray[23];
+
 //		
 		double calculatedmass = 0;
 		int nbBasicAa = 0;
@@ -577,11 +501,91 @@ public class Main_ApplyConfidence {
 			output.Conf_Total = 0;
 		} else if (confDeltaMass == 0) {
 			output.Conf_Total = 0;
-		} else if (output.PD_Rank !=1.0) {
-			output.Conf_Total = 0;	
 		} else {
 			output.Conf_Total = Xcorr;
 		}
+		
+		String queryadddata = "INSERT IGNORE INTO CEMSMSCOMPLETEDATA VALUES("
+				+ output.Conf_Total
+				+ ", "
+				+ output.Conf_Cystein
+				+ ", "
+				+ output.Conf_Oxidation
+				+ ", "
+				+ output.Conf_DeltaMass
+				+ ", "
+				+ output.PD_Rank
+				+ ", '"
+				+ output.Pep_Sequence
+				+ "', '"
+				+ output.Precursor_ID
+				+ "', '"
+				+ output.Precursor_Symbol
+				+ "', '"
+				+ output.Precursor_Name
+				+ "', '"
+				+ output.Pep_Modifications
+				+ "', "
+				+ output.PD_XCorr
+				+ ", "
+				+ output.MS_MZ
+				+ ", "
+				+ output.MS_MH
+				+ ", "
+				+ output.MS_CalculatedMass
+				+ ", "
+				+ output.MS_DeltaM
+				+ ", "
+				+ output.Pep_NbBasicAa
+				+ ", "
+				+ output.MS_RT
+				+ ", "
+				+ output.MS_CalibratedRT
+				+ ", "
+				+ output.MS_FirstScan
+				+ ", "
+				+ output.MS_LastScan
+				+ ", '"
+				+ output.MS_MSOrder
+				+ "', "
+				+ output.MS_IonMatched
+				+ ", "
+				+ output.MS_IonTotal
+				+ ", '"
+				+ output.PD_SpectrumFile
+				+ "', '"
+				+ output.PD_Conf
+				+ "', '"
+				+ output.PD_NumberProt
+				+ "', '"
+				+ output.PD_NumberProtGroup
+				+ "', '"
+				+ output.MS_ActivationType
+				+ "', '"
+				+ output.PD_Proba
+				+ "', '"
+				+ output.PD_Score
+				+ "', "
+				+ output.MS_Area
+				+ ", "
+				+ output.MS_Intensity
+				+ ", "
+				+ output.MS_Charge
+				+ ")";
+				Connection connection2 = getConn();
+				Statement s2 = connection2
+						.createStatement();
+				try {
+					int result2 = s2
+							.executeUpdate(queryadddata);
+					s2.close();
+					connection2.close();
+				} catch (Throwable ignore) {
+					System.err
+							.println("Mysql Statement Error: "
+									+ queryadddata);
+					ignore.printStackTrace();
+				}
 
 	}
 
@@ -635,8 +639,8 @@ public class Main_ApplyConfidence {
 		csvWriter.print("\t");
 		csvWriter.print("RT [min]");
 		csvWriter.print("\t");
-//		csvWriter.print("CalibratedRT [min]");
-//		csvWriter.print("\t");
+		csvWriter.print("CalibratedRT [min]");
+		csvWriter.print("\t");
 		csvWriter.print("First Scan");
 		csvWriter.print("\t");
 		csvWriter.print("Last Scan");
@@ -706,8 +710,8 @@ public class Main_ApplyConfidence {
 		csvWriter.print("\t");
 		csvWriter.print(output.MS_RT);
 		csvWriter.print("\t");
-//		csvWriter.print(output.MS_CalibratedRT);
-//		csvWriter.print("\t");
+		csvWriter.print(output.MS_CalibratedRT);
+		csvWriter.print("\t");
 		csvWriter.print(output.MS_FirstScan);
 		csvWriter.print("\t");
 		csvWriter.print(output.MS_LastScan);

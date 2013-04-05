@@ -6,8 +6,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -21,6 +24,7 @@ import org.apache.tools.ant.types.CommandlineJava.SysProperties;
 import applyconfidence.Output;
 
 public class Main_Identifypeptides_independently {
+
 	public Main_Identifypeptides_independently() throws SQLException {
 
 		int rsSize = 0;
@@ -62,7 +66,8 @@ public class Main_Identifypeptides_independently {
 				int rsSize2 = 0;
 
 				String queryPeptide = "SELECT * FROM CEMSMSCOMPLETEDATA WHERE (ConfTotal > 1.8 OR ConfTotal = 1.8) AND Calibrated_CE_t_min NOT LIKE 0  AND Rank = 1.0"
-//						+ " AND NOT Modifications LIKE '%N1(Deamidated)%' AND NOT Modifications LIKE '%Q1(Deamidated)%'"
+						// +
+						// " AND NOT Modifications LIKE '%N1(Deamidated)%' AND NOT Modifications LIKE '%Q1(Deamidated)%'"
 						+ " AND ((TheoriticalMass_Da > "
 						+ minmass
 						+ " OR TheoriticalMass_Da ="
@@ -137,12 +142,13 @@ public class Main_Identifypeptides_independently {
 								}
 							}
 
+							int deamid = nbN + nbQ;
+							int ox = nbM + nbP;
+							
 							String sequenceUP = sequence.toUpperCase();
 							String key = musterId + ", " + sequenceUP + ", "
-									+ Integer.toString(nbP) + ", "
-									+ Integer.toString(nbQ) + ", "
-									+ Integer.toString(nbN) + ", "
-									+ Integer.toString(nbM);
+									+ Integer.toString(ox) + ", "
+									+ Integer.toString(deamid);
 							if (!peptideselectionHigh.containsKey(key)) {
 								List value = new ArrayList<Set<String>>();
 								for (int j = 0; j < 17; j++) {
@@ -216,7 +222,7 @@ public class Main_Identifypeptides_independently {
 							j++;
 						}
 
-						String confidence = j == 1 ? "High" : "Conflict (High)";
+						String confidence = j == 1 ? "High" : "High (Conflict)";
 
 						Iterator iterator = peptideselectionHigh.values()
 								.iterator();
@@ -307,7 +313,7 @@ public class Main_Identifypeptides_independently {
 										nbOccurence, confidence, AverageX,
 										Averageexpmass, Averagemz);
 							} else {
-								System.out.println("Conflict (High)");
+								System.out.println("High (Conflict)");
 
 								updateConflictDB(musterId, musterMass,
 										musterCE, musterOldSequence, sequence,
@@ -342,6 +348,10 @@ public class Main_Identifypeptides_independently {
 			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
 
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		Date today = new Date();
+		String todaydate = dateFormat.format(today);
+
 		int rsSize3 = 0;
 		String selectedPeptide = "SELECT * FROM CEMSMSSELECTED WHERE Muster_ID = '"
 				+ musterID + "'";
@@ -351,15 +361,24 @@ public class Main_Identifypeptides_independently {
 			ResultSet result3 = s3.executeQuery(selectedPeptide);
 			rsSize3 = getResultSetSize(result3);
 			if (rsSize3 > 0) {
+				while (result3.next()){
+					int Occurrences = result3.getInt("Occurrences");
+					if(nbOccurence != Occurrences) {
+				String Status = "updated_" + todaydate;
+				System.out.println(Status);
 				updatePeptideS(musterID, musterMass, musterCE,
 						musterOldSequence, allsequence, list, theomass, basic,
 						AverageRT, nbOccurence, confidence, AverageX,
-						Averageexpmass, Averagemz);
+						Averageexpmass, Averagemz, Status);
+					}
+				}
 			} else {
+				String Status = "new_" + todaydate;
+				System.out.println(Status);
 				insertPeptideS(musterID, musterMass, musterCE,
 						musterOldSequence, allsequence, list, theomass, basic,
 						AverageRT, nbOccurence, confidence, AverageX,
-						Averageexpmass, Averagemz);
+						Averageexpmass, Averagemz, Status);
 			}
 			result3.close();
 			s3.close();
@@ -376,26 +395,135 @@ public class Main_Identifypeptides_independently {
 			int nbOccurence, String confidence, double AverageX,
 			double Averageexpmass, double Averagemz) throws SQLException {
 
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		Date today = new Date();
+		String todaydate = dateFormat.format(today);
+
+		int rsSize2 = 0;
+		String checkifinselected = "SELECT * FROM CEMSMSSELECTED WHERE Muster_ID = '"
+				+ musterID + "'";
+		Connection connection2 = getConn();
+		Statement s2 = connection2.createStatement();
+		try {
+			ResultSet result2 = s2.executeQuery(checkifinselected);
+			rsSize2 = getResultSetSize(result2);
+			if (rsSize2 > 0) {
+				String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSSELECTED SET Status ='deleted' WHERE Muster_ID ='"
+						+ musterID + "'";
+				Connection connection4 = getConn();
+				Statement s4 = connection4.createStatement();
+				try {
+					int result4 = s4.executeUpdate(updatePeptide);
+					s4.close();
+					connection4.close();
+				} catch (Throwable ignore) {
+					System.err.println("Mysql Statement Error: "
+							+ updatePeptide);
+					ignore.printStackTrace();
+				}
+			}
+			result2.close();
+			s2.close();
+			connection2.close();
+		} catch (Throwable ignore) {
+			System.err.println("Mysql Statement Error: " + checkifinselected);
+			ignore.printStackTrace();
+		}
+
 		int rsSize3 = 0;
 		String selectedPeptide = "SELECT * FROM CEMSMSCONFLICT WHERE Muster_ID = '"
-				+ musterID
-				+ "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
-				+ allsequence + "'";
+				+ musterID + "' AND Sequence ='" + allsequence + "'";
+		System.out.println(selectedPeptide);
 		Connection connection3 = getConn();
 		Statement s3 = connection3.createStatement();
 		try {
 			ResultSet result3 = s3.executeQuery(selectedPeptide);
 			rsSize3 = getResultSetSize(result3);
+			System.out.println(rsSize3);
 			if (rsSize3 > 0) {
-				updatePeptideC(musterID, musterMass, musterCE,
-						musterOldSequence, allsequence, list, theomass, basic,
-						AverageRT, nbOccurence, confidence, AverageX,
-						Averageexpmass, Averagemz);
+				while (result3.next()) {
+					String sequence = result3.getString("Sequence");
+					int Occurrences = result3.getInt("Occurrences");
+					int nbP = 0;
+					int nbN = 0;
+					int nbQ = 0;
+					int nbM = 0;
+					String splitModif[] = sequence.split("");
+					for (String string : splitModif) {
+						if (string.contains("p")) {
+							nbP++;
+						}
+					}
+					for (String string : splitModif) {
+						if (string.contains("q")) {
+							nbQ++;
+						}
+					}
+					for (String string : splitModif) {
+						if (string.contains("n")) {
+							nbN++;
+						}
+					}
+					for (String string : splitModif) {
+						if (string.contains("m")) {
+							nbM++;
+						}
+					}
+					int deamid = nbQ + nbN;
+					int ox = nbM + nbP;
+
+					int nbP2 = 0;
+					int nbN2 = 0;
+					int nbQ2 = 0;
+					int nbM2 = 0;
+					String splitModif2[] = allsequence.split("");
+					for (String string : splitModif2) {
+						if (string.contains("p")) {
+							nbP2++;
+						}
+					}
+					for (String string : splitModif2) {
+						if (string.contains("q")) {
+							nbQ2++;
+						}
+					}
+					for (String string : splitModif2) {
+						if (string.contains("n")) {
+							nbN2++;
+						}
+					}
+					for (String string : splitModif2) {
+						if (string.contains("m")) {
+							nbM2++;
+						}
+					}
+					int deamid2 = nbQ2 + nbN2;
+					int ox2 = nbP2 + nbM2;
+					if (deamid == deamid2 && ox == ox2) {
+						if (nbOccurence != Occurrences) {
+						String Status = "updated_" + todaydate;
+						System.out.println(Status);
+						updatePeptideC(musterID, musterMass, musterCE,
+								musterOldSequence, allsequence, list, theomass,
+								basic, AverageRT, nbOccurence, confidence,
+								AverageX, Averageexpmass, Averagemz, Status);
+						}
+					} else {
+						String Status = "new_" + todaydate;
+						System.out.println(Status);
+						insertPeptideC(musterID, musterMass, musterCE,
+								musterOldSequence, allsequence, list, theomass,
+								basic, AverageRT, nbOccurence, confidence,
+								AverageX, Averageexpmass, Averagemz, Status);
+					}
+				}
 			} else {
+				String Status = "new_" + todaydate;
+				System.out.println(Status);
 				insertPeptideC(musterID, musterMass, musterCE,
 						musterOldSequence, allsequence, list, theomass, basic,
 						AverageRT, nbOccurence, confidence, AverageX,
-						Averageexpmass, Averagemz);
+						Averageexpmass, Averagemz, Status);
 			}
 			result3.close();
 			s3.close();
@@ -410,8 +538,9 @@ public class Main_Identifypeptides_independently {
 			double musterCE, String musterOldSequence, String allsequence,
 			String list, double theomass, int basic, double AverageRT,
 			int nbOccurence, String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSSELECTED SET Occurences ="
+			double Averageexpmass, double Averagemz, String Status)
+			throws SQLException {
+		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSSELECTED SET Occurrences ="
 				+ nbOccurence
 				+ ", Confidence ='"
 				+ confidence
@@ -419,7 +548,7 @@ public class Main_Identifypeptides_independently {
 				+ allsequence
 				+ "', Protein_Info ='"
 				+ list
-				+ "', Theoritical_Mass_Da = "
+				+ "', TheoriticalMass_Da = "
 				+ theomass
 				+ ", Average_ExperimentalMass_H_Da = "
 				+ Averageexpmass
@@ -437,7 +566,11 @@ public class Main_Identifypeptides_independently {
 				+ musterCE
 				+ ", Muster_Old_Sequence ='"
 				+ musterOldSequence
-				+ "' WHERE Muster_ID ='" + musterID + "'";
+				+ "', Status ='"
+				+ Status
+				+ "' WHERE Muster_ID ='"
+				+ musterID
+				+ "'";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
 		try {
@@ -454,13 +587,15 @@ public class Main_Identifypeptides_independently {
 			double musterCE, String musterOldSequence, String allsequence,
 			String list, double theomass, int basic, double AverageRT,
 			int nbOccurence, String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
+			double Averageexpmass, double Averagemz, String Status)
+			throws SQLException {
 		String insertpeptide = "INSERT INTO CEMSMSSELECTED VALUES('" + musterID
 				+ "', " + musterMass + ", " + musterCE + ", '"
 				+ musterOldSequence + "', '" + allsequence + "', '" + list
 				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz
 				+ ", " + AverageX + ", " + basic + ", " + AverageRT + " , "
-				+ nbOccurence + ", '" + confidence + "', '')";
+				+ nbOccurence + ", '" + confidence + "', 'Yes', '" + Status
+				+ "')";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
 		try {
@@ -477,8 +612,9 @@ public class Main_Identifypeptides_independently {
 			double musterCE, String musterOldSequence, String allsequence,
 			String list, double theomass, int basic, double AverageRT,
 			int nbOccurence, String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
-		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSCONFLICT SET Occurences = "
+			double Averageexpmass, double Averagemz, String Status)
+			throws SQLException {
+		String updatePeptide = "UPDATE LCMSMSDatabase.CEMSMSCONFLICT SET Occurrences = "
 				+ nbOccurence
 				+ ", Confidence ='"
 				+ confidence
@@ -486,7 +622,7 @@ public class Main_Identifypeptides_independently {
 				+ allsequence
 				+ "', Protein_Info ='"
 				+ list
-				+ "', Theoritical_Mass_Da = "
+				+ "', TheoriticalMass_Da = "
 				+ theomass
 				+ ", Average_ExperimentalMass_H_Da = "
 				+ Averageexpmass
@@ -504,9 +640,11 @@ public class Main_Identifypeptides_independently {
 				+ musterCE
 				+ ", Muster_Old_Sequence ='"
 				+ musterOldSequence
+				+ "' , Status = '"
+				+ Status
 				+ "' WHERE Muster_ID ='"
 				+ musterID
-				+ "' AND CONVERT (Sequence using latin1) COLLATE Latin1_General_CS ='"
+				+ "' AND Sequence ='"
 				+ allsequence + "'";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
@@ -524,13 +662,14 @@ public class Main_Identifypeptides_independently {
 			double musterCE, String musterOldSequence, String allsequence,
 			String list, double theomass, int basic, double AverageRT,
 			int nbOccurence, String confidence, double AverageX,
-			double Averageexpmass, double Averagemz) throws SQLException {
+			double Averageexpmass, double Averagemz, String Status)
+			throws SQLException {
 		String insertpeptide = "INSERT INTO CEMSMSCONFLICT VALUES('" + musterID
 				+ "', " + musterMass + ", " + musterCE + ", '"
 				+ musterOldSequence + "', '" + allsequence + "', '" + list
 				+ "', " + theomass + "," + Averageexpmass + "," + Averagemz
 				+ ", " + AverageX + ", " + basic + ", " + AverageRT + " , "
-				+ nbOccurence + ", '" + confidence + "', '')";
+				+ nbOccurence + ", '" + confidence + "', '', '" + Status + "')";
 		Connection connection4 = getConn();
 		Statement s4 = connection4.createStatement();
 		try {
@@ -549,7 +688,7 @@ public class Main_Identifypeptides_independently {
 			String splitHashMap2[] = values2.split("\\], \\[");
 			String conf = splitHashMap2[0];
 			conf = conf.replaceAll("\\[", "");
-			if (conf.equals("Conflict (High)")) {
+			if (conf.equals("High (Conflict)")) {
 				return true;
 			}
 		}
