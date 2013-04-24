@@ -1,4 +1,4 @@
-package convertfrompdtoomsa;
+package convertfrompdtoomsa_2;
 
 public class Output {
 	public String PD_Conf;

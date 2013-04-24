@@ -21,7 +21,7 @@ import javax.swing.ListCellRenderer;
 
 import org.apache.tools.ant.types.CommandlineJava.SysProperties;
 
-import applyconfidence.Output;
+import applyconfidence_3.Output;
 
 public class Main_Identifypeptides_mixed {
 	public Main_Identifypeptides_mixed() throws SQLException {

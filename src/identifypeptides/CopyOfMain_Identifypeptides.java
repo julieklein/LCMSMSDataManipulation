@@ -18,7 +18,7 @@ import java.util.Set;
 
 import org.apache.tools.ant.types.CommandlineJava.SysProperties;
 
-import applyconfidence.Output;
+import applyconfidence_3.Output;
 
 public class CopyOfMain_Identifypeptides {
 	public CopyOfMain_Identifypeptides() throws SQLException {

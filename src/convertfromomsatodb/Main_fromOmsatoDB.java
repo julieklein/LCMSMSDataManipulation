@@ -15,21 +15,21 @@ import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import applyconfidence.Main_ApplyConfidence;
-import applyconfidence.Output;
+import applyconfidence_3.Main_ApplyConfidence;
+import applyconfidence_3.Output;
 
 public class Main_fromOmsatoDB {
 	public Main_fromOmsatoDB() throws IOException, SQLException {
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/extrapolated");
+				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/extrapolated");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();
 			String woextrapol = filepath
 					.replace(
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/extrapolated/",
-							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3/");
-			woextrapol = woextrapol.replace("_ConfOMSA-20130319-1121.txt",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/extrapolated/",
+							"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait/");
+			woextrapol = woextrapol.replace("_ConfOMSA-20130311-1258.txt",
 					"_Confidence.txt");
 			String withextrapol = woextrapol.replace("_Confidence.txt",
 					"_Extrapo_Conf.txt");
@@ -109,22 +109,12 @@ public class Main_fromOmsatoDB {
 							if (sequence.equals(sequence2)) {
 								double Xcorr = Double
 										.parseDouble(splitarray[10]);
-//								String arrayXcorr3[] = splitarray[10].split("\\.");
-//								String sXcorr3before = arrayXcorr3[0];
-//								String arrayXcorr3after[] = arrayXcorr3[1].split("");
-//								String sXcorr3 = sXcorr3before + "." + arrayXcorr3after[0] + arrayXcorr3after[1] + arrayXcorr3after[2] + arrayXcorr3after[3] + arrayXcorr3after[4];
-//								double Xcorr3min = Double.parseDouble(sXcorr3);
-//								double Xcorr3max = Xcorr3min + 0.0001;
+//								
 								
 								if (Xcorr == Xcorr2) {
 									double Expmass = Double
 											.parseDouble(splitarray[11]) + 1.007276;
-//									String arrayExpmass3[] = splitarray2[12].split("\\.");
-//									String sExpmass3before = arrayExpmass3[0];
-//									String arrayExpmass3after[] = arrayExpmass3[1].split("");
-//									String sExpmass3 = sExpmass3before + "." + arrayExpmass3after[0] + arrayExpmass3after[1] + arrayExpmass3after[2] + arrayExpmass3after[3] + arrayExpmass3after[4];
-//									double Expmass3min = Double.parseDouble(sExpmass3);
-//									double Expmass3max = Expmass3min + 0.0001;
+//									
 									
 									if (Expmass == Expmass2) {
 										String symbol = splitarray[12];
@@ -133,30 +123,15 @@ public class Main_fromOmsatoDB {
 											if (accession.equals(accession2)) {
 												double mz = Double
 														.parseDouble(splitarray[14]);
-//												String arraymz3[] = splitarray[14].split("\\.");
-//												String smz3before = arraymz3[0];
-//												String arraymz3after[] = arraymz3[1].split("");
-//												String smz3 = smz3before + "." + arraymz3after[0] + arraymz3after[1] + arraymz3after[2] + arraymz3after[3] + arraymz3after[4];
-//												double mz3min = Double.parseDouble(smz3);
-//												double mz3max = mz3min + 0.0001;
+//											
 												if (mz == mz2) {
 													double rt = Double
 															.parseDouble(splitarray[15]);
-//													String arrayrt3[] = splitarray[15].split("\\.");
-//													String srt3before = arrayrt3[0];
-//													String arrayrt3after[] = arrayrt3[1].split("");
-//													String srt3 = srt3before + "." + arrayrt3after[0] + arrayrt3after[1] + arrayrt3after[2] + arrayrt3after[3] + arrayrt3after[4];
-//													double rt3min = Double.parseDouble(srt3);
-//													double rt3max = rt3min + 0.0001;
+//													
 													if (rt == rt2) {
 														double theomass = Double
 																.parseDouble(splitarray[19]);
-//														String arraytheomass3[] = splitarray[19].split("\\.");
-//														String stheomass3before = arraytheomass3[0];
-//														String arraytheomass3after[] = arraytheomass3[1].split("");
-//														String stheomass3 = stheomass3before + "." + arraytheomass3after[0] + arraytheomass3after[1] + arraytheomass3after[2] + arraytheomass3after[3] + arraytheomass3after[4];
-//														double theomass3min = Double.parseDouble(stheomass3);
-//														double theomass3max = theomass3min + 0.0001;
+//														
 														if (theomass == theomass2) {
 															extrapolRT = Double
 																	.parseDouble(splitarray[2]);

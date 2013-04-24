@@ -1,4 +1,4 @@
-package convertxlstotxt;
+package convertxlstotxt_1;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,7 +22,7 @@ public class Main_Convertxlstotext {
 		
 		boolean dirFlag = false;
 		// create File object
-		File stockDir = new File("//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata/textfiles");
+		File stockDir = new File("//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/RAT");
 
 		try {
 		   dirFlag = stockDir.mkdir();
@@ -35,15 +35,15 @@ public class Main_Convertxlstotext {
 		else
 		   System.out.println("Directory was not created successfully");
 		
-
-		File f = new File("//Users/julieklein/Documents/MosaiquesDatabase/CEMSMSdata");
+//
+		File f = new File("//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/RAT");
 		File[] files = f.listFiles();
 		for (File xls : files) {
-//			String filepath = "//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/10934-KMT-Wein-Urin-26174-2976-B_part2.xls";
+//			String filepath = "//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/10985-LTX-Galle-Urin-26355-2718-B_part2.xls";
 			String filepath = "/" + xls.getPath();
 			String filename = filepath;
 			filename = filename.replaceAll(".xls", "");
-			filename = filename.replace("CEMSMSdata", "CEMSMSdata/textfiles");
+//			filename = filename.replace("LCMSMSdata", "LCMSMSdata/RAT");
 			System.out.println(filename);
 			if (!filepath.contains("DS_Store") && !filepath.contains("textfiles")) {
 				try {

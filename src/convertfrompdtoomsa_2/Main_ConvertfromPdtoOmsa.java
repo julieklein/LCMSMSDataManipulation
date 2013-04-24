@@ -1,4 +1,4 @@
-package convertfrompdtoomsa;
+package convertfrompdtoomsa_2;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,7 +17,7 @@ public class Main_ConvertfromPdtoOmsa {
 	public Main_ConvertfromPdtoOmsa() throws IOException {
 
 		File f = new File(
-				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait3");
+				"//Users/julieklein/Documents/MosaiquesDatabase/LCMSMSdata/textfiles/confidence/fait4");
 		File[] files = f.listFiles();
 		for (File file : files) {
 			String filepath = "/" + file.getPath();

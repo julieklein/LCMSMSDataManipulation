@@ -21,7 +21,7 @@ import java.util.Set;
 
 import org.apache.tools.ant.types.CommandlineJava.SysProperties;
 
-import applyconfidence.Output;
+import applyconfidence_3.Output;
 
 public class Main_Identifypeptides_independently {
 
